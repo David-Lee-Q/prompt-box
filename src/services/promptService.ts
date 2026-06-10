@@ -2,6 +2,7 @@ import { db } from '@/db';
 import type { Prompt } from '@/types';
 import { generateNextVersion } from '@/utils/version';
 import { generateId } from '@/utils/helpers';
+import { extractVariables } from '@/utils/variables';
 
 export async function getPromptsByScene(sceneId: string): Promise<Prompt[]> {
   return db.prompts
@@ -12,7 +13,14 @@ export async function getPromptsByScene(sceneId: string): Promise<Prompt[]> {
 }
 
 export async function getPrompt(id: string): Promise<Prompt | undefined> {
-  return db.prompts.get(id);
+  const prompt = await db.prompts.get(id);
+  if (prompt?.variables?.length && typeof prompt.variables[0] === 'string') {
+    prompt.variables = (prompt.variables as unknown as string[]).map((name) => ({
+      name,
+      type: 'text' as const,
+    }));
+  }
+  return prompt;
 }
 
 export async function getStarredPrompts(): Promise<Prompt[]> {
@@ -38,10 +46,12 @@ export async function savePrompt(
       if (!existingPrompt) throw new Error('提示词不存在');
 
       const updatedContent = prompt.content ?? existingPrompt.content;
+      const variables = extractVariables(updatedContent);
       const updatedPrompt = {
         ...existingPrompt,
         ...prompt,
         content: updatedContent,
+        variables,
         updatedAt: now,
       };
 
@@ -88,15 +98,18 @@ export async function savePrompt(
       return { ...updatedPrompt, currentVersionId: versionId };
     } else {
       const id = generateId();
+      const initialContent = prompt.content || '';
+      const variables = extractVariables(initialContent);
       await db.prompts.add({
         id,
         sceneId: prompt.sceneId,
         name: prompt.name || '未命名提示词',
-        content: prompt.content || '',
+        content: initialContent,
         isStarred: false,
         currentVersionId: '',
         tags: [],
         notes: '',
+        variables,
         createdAt: now,
         updatedAt: now,
       });
@@ -105,7 +118,7 @@ export async function savePrompt(
         id: generateId(),
         promptId: id,
         version: 'v1.0.0',
-        content: prompt.content || '',
+        content: initialContent,
         changeLog: '初始版本',
         isProtected: true,
         isInitial: true,
@@ -126,7 +139,7 @@ export async function deletePrompt(id: string): Promise<void> {
 }
 
 export async function toggleStarPrompt(id: string, isStarred: boolean): Promise<void> {
-  await db.prompts.update(id, { isStarred, updatedAt: Date.now() });
+  await db.prompts.update(id, { isStarred });
 }
 
 export async function updatePromptTags(id: string, tags: string[]): Promise<void> {

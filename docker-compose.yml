@@ -1,6 +1,8 @@
 services:
   ai-prompt-manager:
+    image: ai-prompt-manager:latest
+    container_name: ai-prompt-manager
     build: .
     ports:
-      - "8080:80"
+      - "8082:80"
     restart: unless-stopped

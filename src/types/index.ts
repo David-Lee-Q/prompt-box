@@ -9,6 +9,15 @@ export interface Scene {
   updatedAt: number;
 }
 
+export interface VariableDef {
+  name: string;
+  type: 'text' | 'textarea' | 'number' | 'boolean' | 'select';
+  options?: string[];
+  min?: number;
+  max?: number;
+  defaultValue?: string;
+}
+
 export interface Prompt {
   id: string;
   sceneId: string;
@@ -18,6 +27,7 @@ export interface Prompt {
   currentVersionId: string;
   tags: string[];
   notes: string;
+  variables?: VariableDef[];
   createdAt: number;
   updatedAt: number;
 }
@@ -31,6 +41,9 @@ export interface Version {
   changeLog: string;
   isProtected: boolean;
   isInitial: boolean;
+  score?: number;
+  testOutput?: string;
+  modelInfo?: string;
   createdAt: number;
 }
 

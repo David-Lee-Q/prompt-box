@@ -3,12 +3,15 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDate } from '@/utils/helpers';
 import { getVersionsByPrompt } from '@/services/versionService';
+import StarRating from '@/components/ai/StarRating';
 import type { Version } from '@/types';
 import { Shield, ShieldOff, RotateCcw, Trash2, Clock } from 'lucide-react';
 
 interface VersionListProps {
   promptId: string;
   currentVersionId: string;
+  selectedVersionId: string | null;
+  onSelect: (version: Version) => void;
   onRollback: (versionId: string) => Promise<void>;
   onDelete: (versionId: string) => Promise<void>;
   onToggleProtection: (versionId: string, isProtected: boolean) => Promise<void>;
@@ -18,6 +21,8 @@ interface VersionListProps {
 export default function VersionList({
   promptId,
   currentVersionId,
+  selectedVersionId,
+  onSelect,
   onRollback,
   onDelete,
   onToggleProtection,
@@ -61,13 +66,21 @@ export default function VersionList({
               return (
                 <div
                   key={v.id}
-                  className={`p-3 rounded-lg border text-sm ${
-                    isCurrent ? 'border-primary bg-primary/5' : 'border-border'
+                  onClick={() => onSelect(v)}
+                  className={`p-3 rounded-lg border text-sm cursor-pointer transition-colors ${
+                    v.id === selectedVersionId
+                      ? 'border-primary/70 bg-primary/10 ring-1 ring-primary/30'
+                      : isCurrent
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:bg-accent/50'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-medium">{v.version}</span>
+                      {v.score != null && (
+                        <StarRating value={v.score} readonly size="sm" />
+                      )}
                       {isCurrent && (
                         <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
                           当前

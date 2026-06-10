@@ -51,6 +51,22 @@ export async function toggleVersionProtection(id: string, isProtected: boolean):
   await db.versions.update(id, { isProtected });
 }
 
+export async function getVersionMap(promptIds: string[]): Promise<Record<string, string>> {
+  if (promptIds.length === 0) return {};
+  const versions = await db.versions
+    .where('promptId')
+    .anyOf(promptIds)
+    .toArray();
+  const map: Record<string, string> = {};
+  for (const v of versions) {
+    const existing = map[v.promptId];
+    if (!existing || v.createdAt > (versions.find((x) => x.promptId === v.promptId && x.id === existing)?.createdAt ?? 0)) {
+      map[v.promptId] = v.version;
+    }
+  }
+  return map;
+}
+
 export async function getVersionsForDiff(promptId: string): Promise<Version[]> {
   const versions = await db.versions
     .where('promptId')
@@ -58,3 +74,4 @@ export async function getVersionsForDiff(promptId: string): Promise<Version[]> {
     .sortBy('createdAt');
   return versions.sort((a, b) => compareVersions(a.version, b.version));
 }
+

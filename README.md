@@ -1,8 +1,8 @@
 # AI Prompt Manager
 
-**版本：v1.0.0**
+**版本：v2.0.0**
 
-纯浏览器本地 Prompt 全生命周期管理工具。基于 IndexedDB 实现全数据本地落盘，从分类归档 → 版本迭代 → 备份流转一站式管理提示词资产，私有数据不上云。
+纯浏览器本地 Prompt 全生命周期管理工具。基于 IndexedDB 实现全数据本地落盘，集成 AI 辅助优化和质量分析引擎，从分类归档 → 质量诊断 → AI 优化 → 版本迭代 → 备份流转一站式管理提示词资产。
 
 ## 功能特性
 
@@ -14,9 +14,29 @@
 ### 版本管理
 - 保存时自动生成版本（patch 级别递增：v1.0.0 → v1.0.1 → ...）
 - 内容未变时保存不生成新版本
+- **点击版本卡片预览历史内容**（只读模式）
 - 版本回滚：更新内容但不生成新版本，避免历史污染
 - 版本保护/删除：初始版本不可删除，重要版本可加锁保护
 - 版本对比：Inline 和并排两种 diff 模式，高亮新增/删除内容
+
+### AI 辅助（v2.0 新增）
+- **多 Provider 配置**：支持 OpenAI 兼容和 Anthropic 兼容 API，可配置多个切换使用
+- **AI 生成**：根据需求描述自动生成 2-3 个提示词候选方案
+- **AI 优化**：6 种快捷预设 + 5 维度质量诊断联动，流式展示 diff 结果
+- **质量分析引擎**：纯本地 5 维度诊断（明确性/可操作性/Token效率/可读性/安全性），加权评分
+- **单模型测试**：流式运行提示词，评分保存到版本记录
+- **多模型对比**：并行运行多个 Provider，对比延迟和输出
+- **Think 块过滤**：自动过滤 DeepSeek R1 等模型的推理标签
+
+### 变量模板（v2.0 新增）
+- `{{name}}` 语法，支持 6 种类型：text / textarea / number / boolean / select
+- 类型感知的表单控件（数字范围、下拉选项、复选框）
+- 实时模板渲染预览
+
+### 多视图切换（v2.0 新增）
+- **卡片视图**：响应式网格，适合浏览
+- **表格视图**：可排序列（名称/版本/更新时间），适合批量管理
+- 视图偏好持久化
 
 ### 标签与筛选
 - 任意数量标签，输入时自动补全已有标签
@@ -84,19 +104,29 @@ pnpm preview
 ```
 src/
 ├── components/
+│   ├── ai/            # AI 功能（OptimizePanel, GenerateDialog, TestPanel, MultiModelTest,
+│   │                  #   VariableForm, QualityAnalysisPanel, TagRecommendation, etc.）
 │   ├── layout/        # 全局布局（Header, Sidebar, MainContent, StatusBar, ErrorBoundary, ThemeToggle）
-│   ├── scene/         # 场景组件（SceneForm）
 │   ├── prompt/        # 提示词组件（PromptCard, PromptList, PromptEditor）
+│   ├── scene/         # 场景组件（SceneForm）
+│   ├── settings/      # 设置组件（AISettings）
 │   ├── version/       # 版本组件（VersionList, VersionDiff）
 │   ├── tag/           # 标签组件（TagInput）
 │   ├── search/        # 搜索组件（FilterBar, HighlightText）
-│   └── ui/            # shadcn/ui 组件（自动生成）
-├── services/          # 业务逻辑层（sceneService, promptService, versionService）
-├── store/             # Zustand 状态管理（单 Store）
+│   └── ui/            # shadcn/ui 组件
+├── services/
+│   ├── ai/            # AI Provider 抽象层 + Think 过滤
+│   ├── promptService  # 提示词 CRUD + 搜索 + 标签
+│   ├── sceneService   # 场景 CRUD + 级联删除
+│   ├── versionService # 版本管理 + 回滚 + 保护
+│   ├── promptAnalyzer # 5 维度质量分析引擎
+│   ├── scoreService   # 版本评分
+│   └── tagSuggest     # 自动标签推荐
+├── store/             # Zustand 状态管理（useAppStore + settingsStore）
 ├── db/                # Dexie 数据库定义（scenes/prompts/versions 三表）
 ├── types/             # TypeScript 类型定义
-├── utils/             # 工具函数（version, export-import, diff, snapshot, clipboard, helpers）
-├── hooks/             # 自定义 Hooks（useTheme, useKeyboardShortcuts）
+├── utils/             # 工具函数（version, variables, export-import, diff, snapshot, clipboard, helpers）
+├── hooks/             # 自定义 Hooks（useTheme, useVariables, useKeyboardShortcuts, use-toast）
 ├── pages/             # 路由页面（HomePage, PromptDetailPage）
 ├── App.tsx            # 路由配置 + ErrorBoundary
 ├── main.tsx           # 入口（IndexedDB 检测 + SW 注册）
@@ -144,4 +174,12 @@ Scene (1) ──── (N) Prompt (1) ──── (N) Version
 ```bash
 pnpm build  # 输出在 dist/ 目录
 ```
+
+#### Docker
+
+```bash
+docker compose up -d --build
+```
+
+访问 `http://localhost:8082`。容器名为 `ai-prompt-manager`。
 

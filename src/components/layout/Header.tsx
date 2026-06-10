@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
-import { Search, Upload, Download, Plus, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Upload, Download, Plus, Clock, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import useAppStore from '@/store/useAppStore';
+import useSettingsStore from '@/store/settingsStore';
 import { exportAllData, importData, validateImportData, detectConflicts } from '@/utils/export-import';
 import { toast } from '@/hooks/use-toast';
 import ThemeToggle from '@/components/layout/ThemeToggle';
@@ -12,7 +14,9 @@ interface HeaderProps {
 }
 
 export default function Header({ onNewPrompt }: HeaderProps) {
+  const navigate = useNavigate();
   const { searchQuery, setSearchQuery, loadAll, loadPrompts, searchHistory, addSearchHistory, clearSearchHistory } = useAppStore();
+  const { setShowSettings } = useSettingsStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showHistory, setShowHistory] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -107,7 +111,11 @@ export default function Header({ onNewPrompt }: HeaderProps) {
   return (
     <header className="flex items-center gap-3 border-b px-3 sm:px-4 py-2">
       <div className="flex-1 min-w-0">
-        <h1 className="flex items-center gap-1.5 text-base sm:text-lg font-bold text-primary whitespace-nowrap">
+        <h1
+          onClick={() => { useAppStore.getState().setActiveScene(null); navigate('/'); }}
+          className="flex items-center gap-1.5 text-base sm:text-lg font-bold text-primary whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity"
+          title="返回首页"
+        >
           <img src="/AI.svg" alt="AI" className="h-5 w-5 sm:h-6 sm:w-6" />
           Prompt Manager
         </h1>
@@ -173,6 +181,9 @@ export default function Header({ onNewPrompt }: HeaderProps) {
           导入
         </Button>
         <ThemeToggle />
+        <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="AI 设置">
+          <Settings className="h-4 w-4" />
+        </Button>
         <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
       </div>
     </header>

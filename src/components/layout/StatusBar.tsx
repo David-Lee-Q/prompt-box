@@ -104,8 +104,10 @@ export default function StatusBar() {
       </div>
 
       <span className="flex items-center gap-1.5 text-muted-foreground/60">
+        <span className="select-none">v2.0.0</span>
+        <span className="text-muted-foreground/30">|</span>
         <User className="h-3 w-3" />
-        Builder：01461127 / 王伟
+        Builder：dorstar
       </span>
     </div>
   );

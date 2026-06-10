@@ -14,6 +14,7 @@ interface AppStore {
   filterTag: string | null;
   dateRange: { from: number | null; to: number | null };
   isLoading: boolean;
+  viewMode: 'card' | 'table';
   storageInfo: { used: number; quota: number | null };
   searchHistory: string[];
 
@@ -22,6 +23,7 @@ interface AppStore {
   setActiveScene: (id: string | null) => void;
   setActivePrompt: (id: string | null) => void;
   setSearchQuery: (query: string) => void;
+  setViewMode: (mode: 'card' | 'table') => void;
   toggleStarredFilter: () => void;
   setFilterTag: (tag: string | null) => void;
   setDateRange: (range: { from: number | null; to: number | null }) => void;
@@ -53,6 +55,7 @@ const useAppStore = create<AppStore>((set, get) => ({
   filterTag: null,
   dateRange: { from: null, to: null },
   isLoading: false,
+  viewMode: (localStorage.getItem('ai-prompt-manager-view-mode') as 'card' | 'table') || 'card',
   storageInfo: { used: 0, quota: null },
   searchHistory: loadSearchHistory(),
 
@@ -95,6 +98,9 @@ const useAppStore = create<AppStore>((set, get) => ({
       results = results.filter((p) => p.createdAt <= dateRange.to!);
     }
 
+    // Default sort (non-search queries may return unsorted)
+    results.sort((a, b) => b.updatedAt - a.updatedAt);
+
     set({ prompts: results });
   },
 
@@ -108,6 +114,11 @@ const useAppStore = create<AppStore>((set, get) => ({
 
   setSearchQuery: (query) => {
     set({ searchQuery: query });
+  },
+
+  setViewMode: (mode) => {
+    localStorage.setItem('ai-prompt-manager-view-mode', mode);
+    set({ viewMode: mode });
   },
 
   toggleStarredFilter: () => {

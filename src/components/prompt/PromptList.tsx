@@ -1,17 +1,63 @@
-import { FileText, Plus } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { FileText, Plus, LayoutGrid, List, Star, Sparkles, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import PromptCard from './PromptCard';
 import FilterBar from '@/components/search/FilterBar';
 import useAppStore from '@/store/useAppStore';
+import { getVersionMap } from '@/services/versionService';
+import { formatDate } from '@/utils/helpers';
 
 interface PromptListProps {
   onNewPrompt: () => void;
   onPromptClick: (id: string) => void;
   onToggleStar: (id: string, isStarred: boolean) => void;
+  onGenerate?: () => void;
 }
 
-export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }: PromptListProps) {
-  const { prompts, activeSceneId, scenes, isLoading, isStarredFilter } = useAppStore();
+type SortKey = 'name' | 'updatedAt' | 'version';
+type SortDir = 'asc' | 'desc';
+
+export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar, onGenerate }: PromptListProps) {
+  const { prompts, activeSceneId, scenes, isLoading, isStarredFilter, viewMode, setViewMode } = useAppStore();
+  const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [versionMap, setVersionMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (viewMode === 'table' && prompts.length > 0) {
+      getVersionMap(prompts.map((p) => p.id)).then(setVersionMap);
+    }
+  }, [viewMode, prompts]);
+
+  const sorted = useMemo(() => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...prompts].sort((a, b) => {
+      if (sortKey === 'version') {
+        const va = versionMap[a.id] ?? '';
+        const vb = versionMap[b.id] ?? '';
+        return va.localeCompare(vb, undefined, { numeric: true }) * dir;
+      }
+      if (sortKey === 'name') {
+        return a.name.localeCompare(b.name) * dir;
+      }
+      return (a.updatedAt - b.updatedAt) * dir;
+    });
+  }, [prompts, sortKey, sortDir, versionMap]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sortIcon = (key: SortKey) => {
+    if (sortKey !== key) return null;
+    return <span className="ml-1 text-xs">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   if (isLoading) {
     return (
@@ -51,8 +97,32 @@ export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }:
             {prompts.length} 条
           </span>
         </div>
+        <div className="flex items-center gap-1 border rounded-md p-0.5">
+          <button
+            onClick={() => setViewMode('card')}
+            className={`p-1.5 rounded-sm transition-colors ${viewMode === 'card' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            title="卡片视图"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded-sm transition-colors ${viewMode === 'table' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            title="表格视图"
+          >
+            <List className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
-      <FilterBar />
+      <div className="flex items-center gap-2 mb-2">
+        <FilterBar />
+        {onGenerate && (
+          <Button variant="outline" size="sm" onClick={onGenerate} className="flex-shrink-0">
+            <Sparkles className="h-3.5 w-3.5 mr-1" />
+            AI 生成
+          </Button>
+        )}
+      </div>
       {prompts.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-60 text-center">
           <FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -71,16 +141,86 @@ export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }:
             </Button>
           )}
         </div>
+      ) : viewMode === 'table' ? (
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                  名称{sortIcon('name')}
+                </TableHead>
+                <TableHead className="hidden md:table-cell max-w-xs">内容预览</TableHead>
+                <TableHead className="hidden md:table-cell">标签</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('version')}>
+                  版本{sortIcon('version')}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('updatedAt')}>
+                  更新时间{sortIcon('updatedAt')}
+                </TableHead>
+                <TableHead className="w-16 whitespace-nowrap">收藏</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sorted.map((prompt) => (
+                <TableRow
+                  key={prompt.id}
+                  onClick={() => onPromptClick(prompt.id)}
+                  className="cursor-pointer"
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="truncate max-w-[200px]">{prompt.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell max-w-xs">
+                    <span className="text-muted-foreground line-clamp-1 text-xs">
+                      {prompt.content.slice(0, 80)}{prompt.content.length > 80 ? '...' : ''}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <div className="flex gap-1 flex-wrap">
+                      {prompt.tags.slice(0, 3).map((tag) => (
+                        <span key={tag} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] bg-primary/5 text-primary/70">
+                          <Tag className="h-2.5 w-2.5" />
+                          {tag}
+                        </span>
+                      ))}
+                      {prompt.tags.length > 3 && (
+                        <span className="text-xs text-muted-foreground">+{prompt.tags.length - 3}</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground font-mono">
+                    {versionMap[prompt.id] || '-'}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatDate(prompt.updatedAt)}
+                  </TableCell>
+                  <TableCell>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onToggleStar(prompt.id, !prompt.isStarred); }}
+                      className="p-1 rounded hover:bg-accent transition-colors"
+                      title={prompt.isStarred ? '取消收藏' : '收藏'}
+                    >
+                      <Star className={`h-3.5 w-3.5 ${prompt.isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {prompts.map((prompt) => (
-          <PromptCard
-            key={prompt.id}
-            prompt={prompt}
-            onClick={() => onPromptClick(prompt.id)}
-            onToggleStar={() => onToggleStar(prompt.id, !prompt.isStarred)}
-          />
-        ))}
+          {prompts.map((prompt) => (
+            <PromptCard
+              key={prompt.id}
+              prompt={prompt}
+              onClick={() => onPromptClick(prompt.id)}
+              onToggleStar={() => onToggleStar(prompt.id, !prompt.isStarred)}
+            />
+          ))}
         </div>
       )}
     </>

@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 30000,
   retries: 1,
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: "http://localhost:5173",
     headless: true,
     viewport: { width: 1280, height: 720 },
     // Grant clipboard permissions

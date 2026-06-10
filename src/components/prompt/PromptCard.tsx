@@ -34,7 +34,7 @@ export default function PromptCard({ prompt, onClick, onToggleStar }: PromptCard
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <h3 className="font-medium text-sm truncate">
+            <h3 className="font-bold text-sm truncate">
               <HighlightText text={prompt.name} highlight={searchQuery} />
             </h3>
           </div>

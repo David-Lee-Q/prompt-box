@@ -13,4 +13,10 @@ db.version(1).stores({
   versions: 'id, promptId, version, createdAt',
 });
 
+db.version(2).stores({
+  scenes: 'id, name, sortOrder, createdAt',
+  prompts: 'id, sceneId, name, *tags, isStarred, createdAt, updatedAt',
+  versions: 'id, promptId, version, score, createdAt',
+});
+
 export { db };
