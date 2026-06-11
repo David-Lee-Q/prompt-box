@@ -22,7 +22,8 @@ import useAppStore from '@/store/useAppStore';
 import type { Prompt, Version } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
-import { Trash2, History, ArrowLeftRight, Copy, Upload, Play, Columns2, BarChart3 } from 'lucide-react';
+import { Trash2, History, ArrowLeftRight, Copy, Upload, Play, Columns2, BarChart3, FileCode } from 'lucide-react';
+import AgentExportDialog from '@/components/ai/AgentExportDialog';
 import { copyToClipboard } from '@/utils/clipboard';
 
 function PanelDragHandle({ onMouseDown, isResizing }: { onMouseDown: (e: React.MouseEvent) => void; isResizing: boolean }) {
@@ -50,6 +51,7 @@ export default function PromptDetailPage() {
   const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[] | null>(null);
   const [showMultiModel, setShowMultiModel] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showAgentExport, setShowAgentExport] = useState(false);
   const [analysisReport, setAnalysisReport] = useState<AnalysisReport | null>(null);
   const [viewingVersion, setViewingVersion] = useState<Version | null>(null);
   const [panelWidth, setPanelWidth] = useState(480);
@@ -94,12 +96,16 @@ export default function PromptDetailPage() {
     setShowVersions(true);
     setShowDiff(false);
     setShowTest(false);
+    setShowMultiModel(false);
+    setShowAnalysis(false);
   };
 
   const handleShowDiff = () => {
     setShowDiff(true);
     setShowVersions(false);
     setShowTest(false);
+    setShowMultiModel(false);
+    setShowAnalysis(false);
   };
 
   const handleClosePanel = () => {
@@ -221,6 +227,9 @@ export default function PromptDetailPage() {
                     <>
                       <button onClick={handleExportPrompt} className="flex items-center gap-1 text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors active:scale-[0.95]" title="导出提示词">
                         <Upload className="h-3.5 w-3.5" />导出
+                      </button>
+                      <button onClick={() => setShowAgentExport(true)} className="flex items-center gap-1 text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors active:scale-[0.95]" title="导出为 Agent 工具配置">
+                        <FileCode className="h-3.5 w-3.5" />导出工具
                       </button>
                       <button onClick={handleShowVersions} className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors active:scale-[0.95] ${showVersions ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}`}>
                         <History className="h-3.5 w-3.5" />版本历史
@@ -367,6 +376,14 @@ export default function PromptDetailPage() {
           </div>
         </MainContent>
       </div>
+      {prompt && (
+        <AgentExportDialog
+          open={showAgentExport}
+          onOpenChange={setShowAgentExport}
+          prompt={prompt}
+          version={viewingVersion ?? undefined}
+        />
+      )}
       <StatusBar />
     </div>
   );

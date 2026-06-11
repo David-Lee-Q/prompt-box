@@ -48,3 +48,36 @@ export interface AIOptimizeResponse {
   optimized: string;
   explanation?: string;
 }
+
+// ── Agent Tool Export ──
+
+export type AgentExportFormat = 'openai-fc' | 'anthropic-tools' | 'openai-sdk' | 'langchain';
+
+export interface AgentExportResult {
+  format: AgentExportFormat;
+  content: string;
+  filename: string;
+}
+
+export interface AgentToolConfig {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: 'object';
+      properties: Record<string, unknown>;
+      required: string[];
+    };
+  };
+}
+
+export interface AnthropicToolConfig {
+  name: string;
+  description: string;
+  input_schema: {
+    type: 'object';
+    properties: Record<string, unknown>;
+    required: string[];
+  };
+}
