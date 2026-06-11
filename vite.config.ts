@@ -2,11 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// ⚠️  SDK 脆弱性说明
-// `@anthropic-ai/sdk` 内部混有 Node 专用代码（node:crypto, node:fs/promises 等）。
-// 当前通过三个配置协同规避：optimizeDeps.exclude / build.external / 直接依赖 standardwebhooks。
-// 升级 @anthropic-ai/sdk 版本后，必须重新验证 dev server 和 production build 均无报错。
-
 function apiProxyPlugin() {
   return {
     name: 'api-proxy',
@@ -35,7 +30,6 @@ function apiProxyPlugin() {
             if (k.startsWith('x-proxy-') || k === 'host' || k === 'origin' || k === 'referer' || k === 'cookie') continue;
             if (typeof v === 'string') fwdHeaders[k] = v;
           }
-          console.log(`[api-proxy] → ${targetUrl}  body=${body.length}B`);
           try {
             const fetchRes = await fetch(targetUrl, {
               method: 'POST',
@@ -45,14 +39,10 @@ function apiProxyPlugin() {
             });
             res.statusCode = fetchRes.status;
             for (const [k, v] of fetchRes.headers.entries()) {
-              // Node fetch auto-decompresses — strip upstream content-encoding
-              // to prevent browser from double-decompressing.
               if (k === 'content-encoding') continue;
               res.setHeader(k, v);
             }
 
-            // Stream the response body chunk-by-chunk so the browser
-            // gets data immediately (critical for SSE streaming APIs).
             if (fetchRes.body) {
               const reader = fetchRes.body.getReader();
               let totalBytes = 0;
@@ -62,17 +52,14 @@ function apiProxyPlugin() {
                   if (done) break;
                   totalBytes += value.byteLength;
                   if (!res.write(value)) {
-                    // Backpressure — wait for drain before reading more
                     await new Promise((r) => res.once('drain', r));
                   }
                 }
-                console.log(`[api-proxy] ← ${fetchRes.status}  streamed=${totalBytes}B`);
               } catch (streamErr) {
                 console.error(`[api-proxy] stream error after ${totalBytes}B: ${String(streamErr)}`);
               }
               if (!res.writableEnded) res.end();
             } else {
-              console.log(`[api-proxy] ← ${fetchRes.status}  body=empty`);
               res.end();
             }
           } catch (err) {
@@ -86,8 +73,6 @@ function apiProxyPlugin() {
 
       server.middlewares.use(proxyHandler);
 
-      // Vite adds its SPA fallback AFTER configureServer.
-      // Move our handler to index 0 to beat any catch-alls.
       const stack = server.middlewares.stack as any[];
       const ourIdx = stack.findIndex((s: any) => s.handle === proxyHandler);
       if (ourIdx >= 0) {
@@ -98,29 +83,45 @@ function apiProxyPlugin() {
   };
 }
 
-export default defineConfig({
-  plugins: [apiProxyPlugin(), react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
+export default defineConfig(({ mode }) => {
+  const isExtension = mode === 'extension';
+
+  return {
+    plugins: [
+      react(),
+      ...(!isExtension ? [apiProxyPlugin()] : []),
+    ],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+      dedupe: ['@codemirror/state', '@codemirror/view'],
     },
-    dedupe: ['@codemirror/state', '@codemirror/view'],
-  },
-  define: {
-    global: 'globalThis',
-  },
-  optimizeDeps: {
-    exclude: ['@anthropic-ai/sdk'],
-    include: ['standardwebhooks'],
-    esbuildOptions: {
-      define: {
-        global: 'globalThis',
+    define: {
+      global: 'globalThis',
+      ...(isExtension ? { 'import.meta.env.VITE_IS_EXTENSION': JSON.stringify('true') } : {}),
+    },
+    publicDir: isExtension ? 'public-ext' : 'public',
+    build: {
+      outDir: isExtension ? 'dist-ext' : 'dist',
+      rollupOptions: {
+        ...(isExtension ? {
+          input: {
+            sidepanel: path.resolve(__dirname, 'side_panel.html'),
+            options: path.resolve(__dirname, 'options.html'),
+          },
+        } : {}),
+        external: [/^node:/],
       },
     },
-  },
-  build: {
-    rollupOptions: {
-      external: [/^node:/],
+    optimizeDeps: {
+      exclude: ['@anthropic-ai/sdk'],
+      include: ['standardwebhooks'],
+      esbuildOptions: {
+        define: {
+          global: 'globalThis',
+        },
+      },
     },
-  },
+  };
 })

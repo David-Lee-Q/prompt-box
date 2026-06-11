@@ -1,11 +1,19 @@
+import { shouldUseProxy } from '@/utils/env';
+
 const PROXY_FALLBACK = '/api/proxy';
 
 /**
  * Fetch wrapper that routes external URLs through the Vite dev proxy
- * to bypass browser CORS restrictions. Same-origin and relative URLs
- * pass through directly.
+ * to bypass browser CORS restrictions. In extension environments with
+ * host_permissions, direct fetch is used instead.
  */
 export function createProxyFetch(): typeof fetch {
+  // Extension with host_permissions — direct fetch, no CORS issue
+  if (!shouldUseProxy()) {
+    return (url, init) => fetch(url, init);
+  }
+
+  // Web mode — route through Vite/Cloudflare proxy
   return (url, init) => {
     const urlStr = typeof url === 'string' ? url : url.toString();
 
@@ -14,7 +22,7 @@ export function createProxyFetch(): typeof fetch {
       return fetch(url, init);
     }
 
-    // External URL — route through Vite proxy to avoid CORS
+    // External URL — route through proxy to avoid CORS
     const headers = new Headers(init?.headers);
     headers.set('X-Proxy-Target', urlStr);
 

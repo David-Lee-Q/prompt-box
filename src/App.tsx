@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route } from 'react-router-dom';
+import { isExtension } from '@/utils/env';
 import HomePage from '@/pages/HomePage';
 import PromptDetailPage from '@/pages/PromptDetailPage';
 import ErrorBoundary from '@/components/layout/ErrorBoundary';
@@ -14,14 +15,16 @@ export default function App() {
     loadSettings();
   }, [loadSettings]);
 
+  const Router = isExtension() ? HashRouter : BrowserRouter;
+
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <Router>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/prompts/:id" element={<PromptDetailPage />} />
         </Routes>
-      </BrowserRouter>
+      </Router>
       <AISettings />
       <Toaster />
     </ErrorBoundary>

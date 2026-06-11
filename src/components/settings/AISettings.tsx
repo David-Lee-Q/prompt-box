@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import useSettingsStore from '@/store/settingsStore';
 import { generateId } from '@/utils/helpers';
 import { toast } from '@/hooks/use-toast';
+import { isExtension } from '@/utils/env';
 import type { ProviderConfig, APIFormat } from '@/types/ai';
 import { Plus, Trash2, Check, Settings } from 'lucide-react';
 
@@ -122,13 +123,17 @@ export default function AISettings() {
         return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
       };
 
-      // Try direct first, fall back to dev proxy on CORS failure
+      // Try direct first, fall back to dev proxy on CORS failure (web only)
       let res: Response;
       try {
         res = await fetchWithTimeout(endpoint, { method: 'POST', headers, body });
       } catch (directErr) {
         if (directErr instanceof TypeError || (directErr instanceof DOMException && directErr.name === 'AbortError')) {
-          // CORS or timeout — retry through Vite dev proxy
+          if (isExtension()) {
+            // Extension with host_permissions — direct should work; if it fails, it's a network error
+            throw new Error('连接失败，请检查网络或 API 地址是否正确');
+          }
+          // CORS or timeout in web mode — retry through Vite dev proxy
           try {
             res = await fetchWithTimeout('/api/proxy', {
               method: 'POST',

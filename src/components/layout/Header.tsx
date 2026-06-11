@@ -19,7 +19,9 @@ export default function Header({ onNewPrompt }: HeaderProps) {
   const { setShowSettings } = useSettingsStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -121,10 +123,71 @@ export default function Header({ onNewPrompt }: HeaderProps) {
         </h1>
       </div>
 
-      <div className="relative flex-[2] max-w-md mx-auto" ref={searchRef}>
+      {/* Narrow screen: search icon with dropdown */}
+      <div className="relative md:hidden" ref={searchRef}>
+        <button
+          onClick={() => { setSearchExpanded(!searchExpanded); setTimeout(() => searchInputRef.current?.focus(), 50); }}
+          className="p-1.5 rounded hover:bg-accent transition-colors"
+          title="搜索"
+        >
+          <Search className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        {searchExpanded && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-1 w-72 bg-popover border rounded-md shadow-lg p-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                id="search-input"
+                placeholder="搜索提示词..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowHistory(false);
+                  setTimeout(() => loadPrompts(), 0);
+                }}
+                onFocus={() => setShowHistory(searchHistory.length > 0 && !searchQuery)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setSearchExpanded(false);
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    handleSearch(searchQuery);
+                    setSearchExpanded(false);
+                  }
+                }}
+                className="pl-8"
+              />
+            </div>
+            {showHistory && searchHistory.length > 0 && (
+              <div className="mt-1">
+                <div className="flex items-center justify-between px-1 py-0.5">
+                  <span className="text-xs text-muted-foreground">搜索历史</span>
+                  <button onClick={clearSearchHistory} className="text-xs text-muted-foreground hover:text-foreground">
+                    清除
+                  </button>
+                </div>
+                {searchHistory.map((q) => (
+                  <button
+                    key={q}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { handleHistoryClick(q); setSearchExpanded(false); }}
+                    className="w-full flex items-center gap-2 px-1 py-1.5 text-sm hover:bg-accent rounded transition-colors"
+                  >
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate">{q}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Wide screen: inline search bar */}
+      <div className="hidden md:block relative w-56 xl:w-64 mx-auto" ref={searchRef}>
         <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          id="search-input"
+          id="search-input-wide"
           placeholder="搜索提示词..."
           value={searchQuery}
           onChange={(e) => {
@@ -141,7 +204,6 @@ export default function Header({ onNewPrompt }: HeaderProps) {
           }}
           className="pl-8"
         />
-
         {showHistory && searchHistory.length > 0 && (
           <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-popover border rounded-md shadow-md">
             <div className="flex items-center justify-between px-3 py-1.5 border-b">
