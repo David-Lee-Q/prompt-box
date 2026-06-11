@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import useSettingsStore from '@/store/settingsStore';
 import { generateId } from '@/utils/helpers';
 import { toast } from '@/hooks/use-toast';
-import { isExtension } from '@/utils/env';
+import { getOrCreateProvider } from '@/services/ai';
 import type { ProviderConfig, APIFormat } from '@/types/ai';
 import { Plus, Trash2, Check, Settings } from 'lucide-react';
 
@@ -100,62 +100,26 @@ export default function AISettings() {
     }
     setTesting(true);
     try {
-      const apiKey = form.apiKey.trim();
-      const model = form.model.trim();
-      const baseUrl = form.baseUrl.trim() || (
-        form.format === 'anthropic' ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1'
-      );
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
 
-      const endpoint = form.format === 'anthropic'
-        ? `${baseUrl.replace(/\/$/, '')}/messages`
-        : `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+      const provider = getOrCreateProvider({
+        id: `test-${form.format}`,
+        name: 'Test',
+        format: form.format,
+        apiKey: form.apiKey.trim(),
+        model: form.model.trim(),
+        baseUrl: form.baseUrl.trim() || '',
+      });
 
-      const body = JSON.stringify({ model, max_tokens: 16, messages: [{ role: 'user', content: 'Hi' }] });
+      const result = await provider.testConnection(controller.signal);
+      clearTimeout(timer);
 
-      const headers: Record<string, string> = form.format === 'anthropic'
-        ? { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }
-        : { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
-
-      // Shared helper: fetch with timeout
-      const fetchWithTimeout = (url: string, init: RequestInit, timeoutMs = 15000) => {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeoutMs);
-        return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
-      };
-
-      // Try direct first, fall back to dev proxy on CORS failure (web only)
-      let res: Response;
-      try {
-        res = await fetchWithTimeout(endpoint, { method: 'POST', headers, body });
-      } catch (directErr) {
-        if (directErr instanceof TypeError || (directErr instanceof DOMException && directErr.name === 'AbortError')) {
-          if (isExtension()) {
-            // Extension with host_permissions — direct should work; if it fails, it's a network error
-            throw new Error('连接失败，请检查网络或 API 地址是否正确');
-          }
-          // CORS or timeout in web mode — retry through Vite dev proxy
-          try {
-            res = await fetchWithTimeout('/api/proxy', {
-              method: 'POST',
-              headers: { ...headers, 'X-Proxy-Target': endpoint },
-              body,
-            });
-          } catch (proxyErr) {
-            if (proxyErr instanceof DOMException && proxyErr.name === 'AbortError') {
-              throw new Error('连接超时，请检查网络或 API 地址是否正确');
-            }
-            throw new Error('直连被拦截且代理不可用（需 dev server 运行中）');
-          }
-        } else {
-          throw directErr;
-        }
+      if (result.ok) {
+        toast({ title: '连接成功', description: `延迟 ${result.latency}ms` });
+      } else {
+        throw new Error('连接失败，请检查 API Key 和网络连接');
       }
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
-      }
-      toast({ title: '连接成功', description: 'API 连接正常' });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '连接失败';
       toast({ title: '连接失败', description: msg, variant: 'destructive' });

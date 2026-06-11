@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { AISettings, ProviderConfig } from '@/types/ai';
-import { initAI } from '@/services/ai';
+import { getOrCreateProvider, setCurrentProvider, evictProvider } from '@/services/ai';
 import { generateId } from '@/utils/helpers';
 
 const SETTINGS_KEY = 'ai-prompt-manager-ai-settings';
@@ -87,7 +87,7 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     const saved = loadSettings();
     const active = getActiveProvider(saved);
     if (active?.apiKey) {
-      initAI({ format: active.format, apiKey: active.apiKey, model: active.model, baseUrl: active.baseUrl || undefined });
+      setCurrentProvider(getOrCreateProvider(active), active.id);
     }
     set({ settings: saved, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
@@ -96,7 +96,7 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     persistSettings(s);
     const active = getActiveProvider(s);
     if (active?.apiKey) {
-      initAI({ format: active.format, apiKey: active.apiKey, model: active.model, baseUrl: active.baseUrl || undefined });
+      setCurrentProvider(getOrCreateProvider(active), active.id);
     }
     set({ settings: s, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
@@ -109,7 +109,7 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     };
     persistSettings(next);
     if (!s.activeProviderId && p.apiKey) {
-      initAI({ format: p.format, apiKey: p.apiKey, model: p.model, baseUrl: p.baseUrl || undefined });
+      setCurrentProvider(getOrCreateProvider(p), p.id);
     }
     set({ settings: next, isConfigured: true, activeProvider: p });
   },
@@ -122,9 +122,10 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
       providers: s.providers.map((p) => (p.id === id ? { ...p, ...partial } : p)),
     };
     persistSettings(next);
+    evictProvider(id);
     const active = getActiveProvider(next);
     if (active?.apiKey) {
-      initAI({ format: active.format, apiKey: active.apiKey, model: active.model, baseUrl: active.baseUrl || undefined });
+      setCurrentProvider(getOrCreateProvider(active), active.id);
     }
     set({ settings: next, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
@@ -138,9 +139,10 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
       activeProviderId: s.activeProviderId === id ? (providers[0]?.id ?? null) : s.activeProviderId,
     };
     persistSettings(next);
+    evictProvider(id);
     const active = getActiveProvider(next);
     if (active?.apiKey) {
-      initAI({ format: active.format, apiKey: active.apiKey, model: active.model, baseUrl: active.baseUrl || undefined });
+      setCurrentProvider(getOrCreateProvider(active), active.id);
     } else {
       set({ isConfigured: false, activeProvider: null });
     }
@@ -154,7 +156,7 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     persistSettings(next);
     const active = s.providers.find((p) => p.id === id);
     if (active?.apiKey) {
-      initAI({ format: active.format, apiKey: active.apiKey, model: active.model, baseUrl: active.baseUrl || undefined });
+      setCurrentProvider(getOrCreateProvider(active), active.id);
     }
     set({ settings: next, isConfigured: !!(active?.apiKey), activeProvider: active ?? null });
   },

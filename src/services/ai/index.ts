@@ -1,34 +1,83 @@
 import type { AIProvider } from './provider';
-import { OpenAIProvider } from './openai';
-import { AnthropicProvider } from './anthropic';
-import type { AIOptimizeRequest, AIStreamChunk, APIFormat } from '@/types/ai';
+import type { AIOptimizeRequest, AIStreamChunk, APIFormat, ProviderConfig } from '@/types/ai';
+import { createProvider } from './registry';
+import { AIError } from './errors';
 
-let currentProvider: AIProvider | null = null;
+// ── Provider Pool ──
+const providerPool = new Map<string, AIProvider>();
 
+// Module-level current pointer — set by settingsStore, never imports settingsStore
+let current: { provider: AIProvider; id: string } | null = null;
+
+export function getOrCreateProvider(config: ProviderConfig): AIProvider {
+  const key = config.id;
+  if (!providerPool.has(key)) {
+    providerPool.set(key, createProvider({
+      type: config.format,
+      format: config.format,
+      apiKey: config.apiKey,
+      model: config.model,
+      baseUrl: config.baseUrl || undefined,
+    }));
+  }
+  return providerPool.get(key)!;
+}
+
+export function setCurrentProvider(provider: AIProvider, id: string): void {
+  current = { provider, id };
+}
+
+export function evictProvider(providerId: string): void {
+  providerPool.delete(providerId);
+  if (current?.id === providerId) current = null;
+}
+
+export function getCurrentProvider(): AIProvider | null {
+  return current?.provider ?? null;
+}
+
+// ── Backward-compatible API ──
+
+/** @deprecated — use settingsStore.setActiveProvider() instead */
+export function initAI(settings: {
+  format: APIFormat;
+  apiKey: string;
+  model: string;
+  baseUrl?: string;
+}): AIProvider {
+  const id = `init-${settings.format}`;
+  const existing = providerPool.get(id);
+  if (existing) { providerPool.delete(id); }
+
+  const provider = createProvider({
+    type: settings.format,
+    format: settings.format,
+    apiKey: settings.apiKey,
+    model: settings.model,
+    baseUrl: settings.baseUrl,
+  });
+  providerPool.set(id, provider);
+  current = { provider, id };
+  return provider;
+}
+
+/** @deprecated — use getOrCreateProvider() via registry instead */
 export function getAIProvider(
   format: APIFormat,
   apiKey: string,
   model: string,
   baseUrl?: string
 ): AIProvider {
-  if (format === 'anthropic') {
-    return new AnthropicProvider(apiKey, model, baseUrl);
-  }
-  return new OpenAIProvider(apiKey, model, baseUrl);
+  return createProvider({
+    type: format,
+    format,
+    apiKey,
+    model,
+    baseUrl,
+  });
 }
 
-export function initAI(settings: {
-  format: APIFormat;
-  apiKey: string;
-  model: string;
-  baseUrl?: string;
-}) {
-  currentProvider = getAIProvider(settings.format, settings.apiKey, settings.model, settings.baseUrl);
-}
-
-export function getCurrentProvider(): AIProvider | null {
-  return currentProvider;
-}
+// ── High-level methods (unchanged signatures) ──
 
 export async function optimizePrompt(
   request: AIOptimizeRequest,
@@ -36,9 +85,8 @@ export async function optimizePrompt(
   signal?: AbortSignal
 ): Promise<string> {
   const provider = getCurrentProvider();
-  if (!provider) throw new Error('AI 未配置，请在设置中配置 API Key');
+  if (!provider) throw new AIError('AI 未配置，请在设置中配置 API Key', 'auth');
 
-  // Build system prompt — principle-first with diagnostic notes as reference
   let systemPrompt: string;
   const dims = request.dimensions?.filter((d) => d.enabled);
   if (dims && dims.length > 0) {
@@ -92,7 +140,7 @@ export async function generatePrompt(
   signal?: AbortSignal
 ): Promise<string> {
   const provider = getCurrentProvider();
-  if (!provider) throw new Error('AI 未配置');
+  if (!provider) throw new AIError('AI 未配置', 'auth');
 
   const systemPrompt =
     '你是一个 Prompt 生成专家。根据用户的需求描述，生成一个高质量的 Prompt。' +
@@ -123,7 +171,7 @@ export async function generateCandidates(
   signal?: AbortSignal
 ): Promise<string> {
   const provider = getCurrentProvider();
-  if (!provider) throw new Error('AI 未配置，请在设置中配置 API Key');
+  if (!provider) throw new AIError('AI 未配置，请在设置中配置 API Key', 'auth');
 
   return provider.chat(
     [

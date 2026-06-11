@@ -1,4 +1,4 @@
-export type APIFormat = 'openai' | 'anthropic';
+export type APIFormat = 'openai' | 'anthropic' | 'google' | 'ollama' | 'custom';
 
 export interface ProviderConfig {
   id: string;
