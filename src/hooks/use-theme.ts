@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 type Theme = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'ai-prompt-manager-theme';
+const THEME_CHANGE_EVENT = 'ai-prompt-manager-theme-changed';
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light';
@@ -14,35 +15,62 @@ function getStoredTheme(): Theme {
   return (localStorage.getItem(STORAGE_KEY) as Theme) || 'system';
 }
 
-function applyTheme(theme: Theme) {
+function applyDOMTheme(theme: Theme) {
   const resolved = theme === 'system' ? getSystemTheme() : theme;
   document.documentElement.classList.toggle('dark', resolved === 'dark');
 }
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(getStoredTheme);
+  const [stored, setStored] = useState<Theme>(getStoredTheme);
+  const [resolved, setResolved] = useState<'light' | 'dark'>(
+    () => getStoredTheme() === 'system' ? getSystemTheme() : getStoredTheme() as 'light' | 'dark'
+  );
+
+  // Listen for theme changes from other useTheme instances
+  useEffect(() => {
+    const sync = () => {
+      const s = getStoredTheme();
+      setStored(s);
+      setResolved(s === 'system' ? getSystemTheme() : s);
+    };
+
+    window.addEventListener(THEME_CHANGE_EVENT, sync);
+
+    // Also listen for cross-tab localStorage changes
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) sync();
+    };
+    window.addEventListener('storage', onStorage);
+
+    // Listen for system theme changes
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const onSystemChange = () => {
+      if (getStoredTheme() === 'system') sync();
+    };
+    mql.addEventListener('change', onSystemChange);
+
+    return () => {
+      window.removeEventListener(THEME_CHANGE_EVENT, sync);
+      window.removeEventListener('storage', onStorage);
+      mql.removeEventListener('change', onSystemChange);
+    };
+  }, []);
 
   const setTheme = useCallback((newTheme: Theme) => {
-    setThemeState(newTheme);
     localStorage.setItem(STORAGE_KEY, newTheme);
-    applyTheme(newTheme);
+    applyDOMTheme(newTheme);
+    window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT));
   }, []);
 
   const toggleTheme = useCallback(() => {
-    const current = theme === 'system' ? getSystemTheme() : theme;
+    const current = getStoredTheme() === 'system' ? getSystemTheme() : getStoredTheme();
     setTheme(current === 'dark' ? 'light' : 'dark');
-  }, [theme, setTheme]);
+  }, [setTheme]);
 
+  // Keep DOM in sync on mount
   useEffect(() => {
-    applyTheme(theme);
+    applyDOMTheme(stored);
+  }, [stored]);
 
-    const mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => {
-      if (theme === 'system') applyTheme('system');
-    };
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
-  }, [theme]);
-
-  return { theme, setTheme, toggleTheme, resolvedTheme: theme === 'system' ? getSystemTheme() : theme };
+  return { theme: stored, setTheme, toggleTheme, resolvedTheme: resolved };
 }

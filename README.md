@@ -1,6 +1,6 @@
 # AI Prompt Manager
 
-**版本：v2.0.0**
+**版本：v2.1.0**
 
 纯浏览器本地 Prompt 全生命周期管理工具。基于 IndexedDB 实现全数据本地落盘，集成 AI 辅助优化和质量分析引擎，从分类归档 → 质量诊断 → AI 优化 → 版本迭代 → 备份流转一站式管理提示词资产。
 
@@ -182,4 +182,16 @@ docker compose up -d --build
 ```
 
 访问 `http://localhost:8082`。容器名为 `ai-prompt-manager`。
+
+#### Chrome 扩展
+
+```bash
+pnpm build:ext   # 输出在 dist-ext/
+```
+
+1. 打开 `chrome://extensions`，开启 **开发者模式**
+2. 点击 **加载已解压的扩展程序**，选择 `dist-ext/` 目录
+3. 点击工具栏扩展图标，打开独立窗口
+
+扩展模式下 API 请求直连（无 CORS 限制），数据仍存储在浏览器本地。
 

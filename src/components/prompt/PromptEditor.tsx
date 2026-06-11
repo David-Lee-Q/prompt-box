@@ -334,6 +334,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
           </div>
           <div className="border rounded-md overflow-hidden bg-background">
             <CodeMirror
+              key={resolvedTheme}
               value={content}
               onChange={(val) => setContent(val)}
               readOnly={readOnly}

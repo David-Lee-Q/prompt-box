@@ -227,7 +227,7 @@ export default function Header({ onNewPrompt }: HeaderProps) {
         )}
       </div>
 
-      <div className="flex-1 min-w-0 flex items-center justify-end gap-1 sm:gap-2">
+      <div className="flex items-center justify-end gap-0.5 sm:gap-1.5">
         {onNewPrompt && (
           <Button variant="default" size="sm" onClick={onNewPrompt} className="active:scale-[0.98] transition-all hidden sm:inline-flex">
             <Plus className="h-4 w-4 mr-1" />
@@ -235,12 +235,12 @@ export default function Header({ onNewPrompt }: HeaderProps) {
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={handleExport} title="导出数据" className="active:scale-[0.98] transition-all">
-          <Upload className="h-4 w-4 mr-1" />
-          导出
+          <Upload className="h-4 w-4 xl:mr-1" />
+          <span className="hidden xl:inline">导出</span>
         </Button>
         <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} title="导入数据" className="active:scale-[0.98] transition-all">
-          <Download className="h-4 w-4 mr-1" />
-          导入
+          <Download className="h-4 w-4 xl:mr-1" />
+          <span className="hidden xl:inline">导入</span>
         </Button>
         <ThemeToggle />
         <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="AI 设置">

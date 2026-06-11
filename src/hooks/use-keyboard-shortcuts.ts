@@ -10,7 +10,7 @@ export function useKeyboardShortcuts(shortcuts: ShortcutMap) {
       const key = [
         e.ctrlKey || e.metaKey ? 'Ctrl' : '',
         e.shiftKey ? 'Shift' : '',
-        e.key.toUpperCase(),
+        (e.key || '').toUpperCase(),
       ]
         .filter(Boolean)
         .join('+');

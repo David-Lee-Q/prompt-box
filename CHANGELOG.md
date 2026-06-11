@@ -1,5 +1,33 @@
 # Changelog
 
+## v2.1.0 (2026-06-11)
+
+### Chrome 扩展支持
+
+- 点击扩展图标打开 960×720 独立窗口（单例聚焦）
+- 扩展环境 API 直连（`host_permissions` 绕过 CORS，无需代理）
+- 双构建命令：`pnpm build`（Web）+ `pnpm build:ext`（扩展），产物隔离
+- 搜索框自适应：宽屏内嵌搜索栏，窄屏图标 + 下拉面板
+- 扩展图标 16/32/48/128 四尺寸 PNG（SVG 生成脚本）
+
+### 修复
+
+- 主题切换时 CodeMirror 编辑框实时跟随（事件驱动 `useTheme`）
+- 深色模式边框对比度优化（`--border` 17.5% → 28%）
+- 快捷键空值保护（`e.key || ''`）
+
+### 技术变更
+
+- 新增 `src/utils/env.ts` — 环境检测（`isExtension` / `shouldUseProxy`）
+- 新增 `src/hooks/use-theme.ts` — 事件驱动主题同步（CustomEvent）
+- 新增 `public-ext/` — 扩展静态资源（manifest、icons、sw.js、theme-init.js）
+- 新增 `src/sidepanel.tsx` / `src/options.tsx` — 扩展 TSX 入口
+- 新增 `scripts/generate-icons.mjs` — SVG → PNG 图标生成
+- `src/App.tsx` 条件路由（HashRouter/BrowserRouter）
+- `vite.config.ts` 双模式构建（`mode === 'extension'`）
+
+---
+
 ## v2.0.0 (2026-06-10)
 
 ### 新增功能

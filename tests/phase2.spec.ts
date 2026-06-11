@@ -70,6 +70,7 @@ test.describe('阶段二功能测试', () => {
     await editor.fill('第一版内容');
     await page.getByRole('button', { name: '保存' }).click();
     await expect(page.getByText('保存成功', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('保存成功', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     await editor.fill('第二版内容');
     await page.getByRole('button', { name: '保存' }).click();
@@ -91,6 +92,7 @@ test.describe('阶段二功能测试', () => {
     await editor.fill('内容不变量');
     await page.getByRole('button', { name: '保存' }).click();
     await expect(page.getByText('保存成功', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('保存成功', { exact: true })).not.toBeVisible({ timeout: 10000 });
 
     // Same content, save again
     await page.getByRole('button', { name: '保存' }).click();
