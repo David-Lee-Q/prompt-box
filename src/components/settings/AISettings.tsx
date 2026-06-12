@@ -14,7 +14,7 @@ import { generateId } from '@/utils/helpers';
 import { toast } from '@/hooks/use-toast';
 import { getOrCreateProvider, evictProvider } from '@/services/ai';
 import type { ProviderConfig, APIFormat } from '@/types/ai';
-import { Plus, Trash2, Check, Settings } from 'lucide-react';
+import { Plus, Trash2, Check, Settings, Eye, EyeOff } from 'lucide-react';
 
 const EMPTY_FORM: Omit<ProviderConfig, 'id'> = {
   name: '',
@@ -42,6 +42,7 @@ export default function AISettings() {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [testing, setTesting] = useState(false);
+  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
     if (!showSettings) {
@@ -228,14 +229,25 @@ export default function AISettings() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="ai-apikey">API Key</Label>
-                        <Input
-                          id="ai-apikey"
-                          type="password"
-                          value={form.apiKey}
-                          onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
-                          placeholder="sk-..."
-                        />
+                        <Label htmlFor="edit-apikey">API Key</Label>
+                        <div className="relative">
+                          <Input
+                            id="edit-apikey"
+                            type={showKey ? 'text' : 'password'}
+                            value={form.apiKey}
+                            onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                            placeholder="sk-..."
+                            className="pr-8"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowKey(!showKey)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            tabIndex={-1}
+                          >
+                            {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="ai-model">模型 ID</Label>
@@ -313,14 +325,25 @@ export default function AISettings() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="ai-apikey">API Key</Label>
-                <Input
-                  id="ai-apikey"
-                  type="password"
-                  value={form.apiKey}
-                  onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
-                  placeholder="sk-..."
-                />
+                <Label htmlFor="add-apikey">API Key</Label>
+                <div className="relative">
+                  <Input
+                    id="add-apikey"
+                    type={showKey ? 'text' : 'password'}
+                    value={form.apiKey}
+                    onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                    placeholder="sk-..."
+                    className="pr-8"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-1.5">

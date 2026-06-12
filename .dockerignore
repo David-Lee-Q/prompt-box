@@ -1,6 +1,11 @@
 node_modules
+dist
+dist-ext
 .git
-test-results
-tests
+docs
 *.md
 .env*
+.claude/
+.github/
+.vscode/
+*.log

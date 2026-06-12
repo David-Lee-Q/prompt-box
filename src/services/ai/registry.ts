@@ -4,6 +4,9 @@ import type { AIProviderConfig } from '@/types/ai';
 const registry = new Map<string, (config: AIProviderConfig) => AIProvider>();
 
 export function registerProvider(format: string, factory: (config: AIProviderConfig) => AIProvider): void {
+  if (registry.has(format)) {
+    console.warn(`[AI Registry] Provider "${format}" already registered, overwriting`);
+  }
   registry.set(format, factory);
 }
 
