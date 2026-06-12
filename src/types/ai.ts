@@ -15,8 +15,6 @@ export interface AIProviderConfig {
   apiKey: string;
   baseUrl?: string;
   model: string;
-  maxTokens?: number;
-  temperature?: number;
 }
 
 export interface AISettings {

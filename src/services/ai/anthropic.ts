@@ -56,10 +56,6 @@ export class AnthropicProvider implements AIProvider {
     return new AnthropicProvider(config.apiKey, config.model, config.baseUrl);
   }
 
-  private getMaxTokens(): number {
-    return this.config.maxTokens ?? this.maxTokens;
-  }
-
   private splitMessages(messages: ChatMessage[]): {
     system?: string;
     chatMessages: { role: 'user' | 'assistant'; content: string }[];
@@ -84,10 +80,9 @@ export class AnthropicProvider implements AIProvider {
     let fullText = '';
     const stream = this.client.messages.stream({
       model: this.config.model,
-      max_tokens: this.getMaxTokens(),
+      max_tokens: this.maxTokens,
       messages: chatMessages,
       ...(system ? { system } : {}),
-      ...(this.config.temperature != null ? { temperature: this.config.temperature } : {}),
     });
 
     const onAbort = () => stream.controller.abort();
@@ -129,11 +124,10 @@ export class AnthropicProvider implements AIProvider {
       const response = await this.client.messages.create(
         {
           model: this.config.model,
-          max_tokens: this.getMaxTokens(),
+          max_tokens: this.maxTokens,
           messages: chatMessages,
           ...(system ? { system } : {}),
-          ...(this.config.temperature != null ? { temperature: this.config.temperature } : {}),
-        },
+            },
         signal ? { signal } : undefined
       );
 

@@ -19,6 +19,7 @@ export async function getPrompt(id: string): Promise<Prompt | undefined> {
       name,
       type: 'text' as const,
     }));
+    await db.prompts.update(prompt.id, { variables: prompt.variables });
   }
   return prompt;
 }

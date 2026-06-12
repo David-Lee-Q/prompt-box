@@ -69,8 +69,6 @@ export class OpenAIProvider implements AIProvider {
             content: m.content,
           })),
           stream: true,
-          ...(this.config.temperature != null ? { temperature: this.config.temperature } : {}),
-          ...(this.config.maxTokens != null ? { max_tokens: this.config.maxTokens } : {}),
         },
         { signal }
       );
@@ -105,8 +103,6 @@ export class OpenAIProvider implements AIProvider {
             role: m.role as 'system' | 'user' | 'assistant',
             content: m.content,
           })),
-          ...(this.config.temperature != null ? { temperature: this.config.temperature } : {}),
-          ...(this.config.maxTokens != null ? { max_tokens: this.config.maxTokens } : {}),
         },
         { signal }
       );
