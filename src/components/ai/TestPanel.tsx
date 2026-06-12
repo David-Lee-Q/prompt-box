@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Play, Loader2, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentProvider } from '@/services/ai';
+import { AIError } from '@/services/ai/errors';
 import { friendlyErrorMessage } from '@/services/ai/messages';
 import { setVersionScore, setVersionTestOutput } from '@/services/scoreService';
 import useSettingsStore from '@/store/settingsStore';
@@ -47,7 +48,8 @@ export default function TestPanel({ versionId, content, onClose }: TestPanelProp
       );
       await setVersionTestOutput(versionId, fullOutput, provider.getConfig().model);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof AIError && err.code === 'cancelled') return;
       setError(friendlyErrorMessage(err, '测试运行失败'));
     } finally {
       setIsRunning(false);

@@ -3,6 +3,7 @@ import { Play, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ModelOutputCard from './ModelOutputCard';
 import { getAIProvider } from '@/services/ai';
+import { AIError } from '@/services/ai/errors';
 import useSettingsStore from '@/store/settingsStore';
 import { copyToClipboard } from '@/utils/clipboard';
 import { toast } from '@/hooks/use-toast';
@@ -67,7 +68,8 @@ export default function MultiModelTest({ content, onClose }: MultiModelTestProps
             return next;
           });
         } catch (err) {
-          if (err instanceof Error && err.name === 'AbortError') return;
+          if (err instanceof DOMException && err.name === 'AbortError') return;
+          if (err instanceof AIError && err.code === 'cancelled') return;
           setResults((prev) => {
             const next = [...prev];
             next[i] = { ...next[i]!, error: String(err), status: 'error', latency: Date.now() - startTime };

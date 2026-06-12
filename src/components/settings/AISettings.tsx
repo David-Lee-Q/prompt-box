@@ -99,12 +99,14 @@ export default function AISettings() {
       return;
     }
     setTesting(true);
+    let testId = '';
+    let timer: ReturnType<typeof setTimeout> | null = null;
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
+      timer = setTimeout(() => controller.abort(), 15000);
 
       // Use unique ID per test to avoid Pool cache returning stale credentials
-      const testId = `test-${form.format}-${Date.now()}`;
+      testId = `test-${form.format}-${Date.now()}`;
       const provider = getOrCreateProvider({
         id: testId,
         name: 'Test',
@@ -115,8 +117,6 @@ export default function AISettings() {
       });
 
       const result = await provider.testConnection(controller.signal);
-      evictProvider(testId); // clean up after test
-      clearTimeout(timer);
 
       if (result.ok) {
         toast({ title: '连接成功', description: `延迟 ${result.latency}ms` });
@@ -127,6 +127,8 @@ export default function AISettings() {
       const msg = err instanceof Error ? err.message : '连接失败';
       toast({ title: '连接失败', description: msg, variant: 'destructive' });
     } finally {
+      if (timer) clearTimeout(timer);
+      if (testId) evictProvider(testId);
       setTesting(false);
     }
   };

@@ -10,7 +10,7 @@ import { stripThinkBlocks } from './thinkFilter';
 export function mapAnthropicError(err: unknown): AIError {
   if (err instanceof AIError) return err;
   if (err instanceof DOMException && err.name === 'AbortError') {
-    return new AIError('请求已取消', 'timeout');
+    return new AIError('请求已取消', 'cancelled');
   }
   if (err && typeof err === 'object' && 'status' in err) {
     const e = err as { status: number; message?: string; type?: string };
@@ -86,12 +86,22 @@ export class AnthropicProvider implements AIProvider {
     });
 
     const onAbort = () => stream.controller.abort();
-    if (signal) signal.addEventListener('abort', onAbort);
+    if (signal) {
+      if (signal.aborted) {
+        stream.controller.abort();
+      } else {
+        signal.addEventListener('abort', onAbort, { once: true });
+      }
+    }
 
     let fullText = '';
+    let lastCleaned = 0;
     stream.on('text', (text) => {
       fullText += text;
-      onChunk(text);
+      const cleaned = stripThinkBlocks(fullText);
+      const delta = cleaned.slice(lastCleaned);
+      if (delta) onChunk(delta);
+      lastCleaned = cleaned.length;
     });
 
     try {
@@ -131,16 +141,21 @@ export class AnthropicProvider implements AIProvider {
 
   async testConnection(signal?: AbortSignal): Promise<{ ok: boolean; latency: number; error?: string }> {
     const start = Date.now();
+    const internalCtrl = new AbortController();
+    const timeout = setTimeout(() => internalCtrl.abort(), 20000);
     try {
+      const effectiveSignal = signal ?? internalCtrl.signal;
       await this.client.messages.create({
         model: this.config.model,
         max_tokens: 1,
         messages: [{ role: 'user', content: 'Hi' }],
-      }, signal ? { signal } : undefined);
+      }, { signal: effectiveSignal });
       return { ok: true, latency: Date.now() - start };
     } catch (err) {
       const mapped = mapAnthropicError(err);
       return { ok: false, latency: Date.now() - start, error: mapped.message };
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

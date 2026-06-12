@@ -3,6 +3,7 @@ import { Sparkles, Loader2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { optimizePrompt } from '@/services/ai';
+import { AIError } from '@/services/ai/errors';
 import { friendlyErrorMessage } from '@/services/ai/messages';
 import { analyzePrompt } from '@/services/promptAnalyzer';
 import type { OptimizeDimension } from '@/types/ai';
@@ -127,6 +128,7 @@ export default function OptimizePanel({ content, onApply, onClose }: OptimizePan
   const [result, setResult] = useState('');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isRunningRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // Run quality analysis on mount
@@ -168,6 +170,8 @@ export default function OptimizePanel({ content, onApply, onClose }: OptimizePan
   }, [dims]);
 
   const handleOptimize = async () => {
+    if (isRunningRef.current) return;
+    isRunningRef.current = true;
     setIsOptimizing(true);
     setError(null);
     setResult('');
@@ -191,9 +195,11 @@ export default function OptimizePanel({ content, onApply, onClose }: OptimizePan
         setError('AI 未返回优化结果');
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof AIError && err.code === 'cancelled') return;
       setError(friendlyErrorMessage(err, '优化请求失败'));
     } finally {
+      isRunningRef.current = false;
       setIsOptimizing(false);
       abortRef.current = null;
     }

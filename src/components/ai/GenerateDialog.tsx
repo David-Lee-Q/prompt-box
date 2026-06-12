@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { generateCandidates, parseCandidates } from '@/services/ai';
+import { AIError } from '@/services/ai/errors';
 import { friendlyErrorMessage } from '@/services/ai/messages';
 import useSettingsStore from '@/store/settingsStore';
 
@@ -60,7 +61,8 @@ export default function GenerateDialog({
         }))
       );
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof AIError && err.code === 'cancelled') return;
       setError(friendlyErrorMessage(err, '生成失败'));
     } finally {
       setIsGenerating(false);

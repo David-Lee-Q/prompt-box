@@ -1,4 +1,4 @@
-export type AIErrorCode = 'auth' | 'rate_limit' | 'timeout' | 'network' | 'server' | 'unknown';
+export type AIErrorCode = 'auth' | 'rate_limit' | 'timeout' | 'cancelled' | 'network' | 'server' | 'unknown';
 
 export class AIError extends Error {
   constructor(

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { AIError } from '@/services/ai/errors';
 import type { AIStreamChunk } from '@/types/ai';
 
 interface UseAIStreamOptions {
@@ -10,6 +11,7 @@ interface UseAIStreamOptions {
 export function useAIStream(options: UseAIStreamOptions = {}) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isRunningRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const optionsRef = useRef(options);
 
@@ -24,6 +26,8 @@ export function useAIStream(options: UseAIStreamOptions = {}) {
         signal: AbortSignal
       ) => Promise<string>
     ) => {
+      if (isRunningRef.current) return '';
+      isRunningRef.current = true;
       setIsStreaming(true);
       setError(null);
       const controller = new AbortController();
@@ -45,12 +49,14 @@ export function useAIStream(options: UseAIStreamOptions = {}) {
         onDone?.(accumulated);
         return accumulated;
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') return '';
+        if (err instanceof DOMException && err.name === 'AbortError') return '';
+        if (err instanceof AIError && err.code === 'cancelled') return '';
         const msg = err instanceof Error ? err.message : '请求失败';
         setError(msg);
         onError?.(msg);
         return '';
       } finally {
+        isRunningRef.current = false;
         setIsStreaming(false);
         abortRef.current = null;
       }

@@ -58,9 +58,9 @@ describe('mapOpenAIError', () => {
     expect(e.message).toContain('网络');
   });
 
-  it('maps AbortError to timeout', () => {
+  it('maps AbortError to cancelled', () => {
     const e = mapOpenAIError(abortError());
-    expect(e.code).toBe('timeout');
+    expect(e.code).toBe('cancelled');
   });
 
   it('maps plain Error to unknown', () => {
@@ -107,9 +107,9 @@ describe('mapAnthropicError', () => {
     expect(e.code).toBe('network');
   });
 
-  it('maps AbortError to timeout', () => {
+  it('maps AbortError to cancelled', () => {
     const e = mapAnthropicError(abortError());
-    expect(e.code).toBe('timeout');
+    expect(e.code).toBe('cancelled');
   });
 
   it('uses fallback message for undefined message', () => {

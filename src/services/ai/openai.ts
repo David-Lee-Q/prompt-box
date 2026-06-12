@@ -10,7 +10,7 @@ import { stripThinkBlocks } from './thinkFilter';
 export function mapOpenAIError(err: unknown): AIError {
   if (err instanceof AIError) return err;
   if (err instanceof DOMException && err.name === 'AbortError') {
-    return new AIError('请求已取消', 'timeout');
+    return new AIError('请求已取消', 'cancelled');
   }
   if (err && typeof err === 'object' && 'status' in err) {
     const e = err as { status: number; message?: string; code?: string };
@@ -71,11 +71,15 @@ export class OpenAIProvider implements AIProvider {
       );
 
       let fullText = '';
+      let lastCleaned = 0;
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content;
         if (content) {
           fullText += content;
-          onChunk(content);
+          const cleaned = stripThinkBlocks(fullText);
+          const delta = cleaned.slice(lastCleaned);
+          if (delta) onChunk(delta);
+          lastCleaned = cleaned.length;
         }
       }
       return stripThinkBlocks(fullText);
@@ -111,16 +115,21 @@ export class OpenAIProvider implements AIProvider {
     // Use minimal chat completion (POST) rather than models.list (GET),
     // because the Vite dev proxy only forwards POST requests.
     const start = Date.now();
+    const internalCtrl = new AbortController();
+    const timeout = setTimeout(() => internalCtrl.abort(), 20000);
     try {
+      const effectiveSignal = signal ?? internalCtrl.signal;
       await this.client.chat.completions.create({
         model: this.config.model,
         max_tokens: 1,
         messages: [{ role: 'user', content: 'Hi' }],
-      }, signal ? { signal } : undefined);
+      }, { signal: effectiveSignal });
       return { ok: true, latency: Date.now() - start };
     } catch (err) {
       const mapped = mapOpenAIError(err);
       return { ok: false, latency: Date.now() - start, error: mapped.message };
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

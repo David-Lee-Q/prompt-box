@@ -96,6 +96,10 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     persistSettings(s);
     const active = getActiveProvider(s);
     if (active?.apiKey) {
+      const prev = get().activeProvider;
+      if (prev && prev.id === active.id) {
+        evictProvider(active.id); // force recreate with new config
+      }
       setCurrentProvider(getOrCreateProvider(active), active.id);
     }
     set({ settings: s, isConfigured: !!(active?.apiKey), activeProvider: active });

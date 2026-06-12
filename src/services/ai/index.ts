@@ -83,13 +83,19 @@ export function getAIProvider(
 
 // ── High-level methods (unchanged signatures) ──
 
+function requireProvider(): AIProvider {
+  const provider = getCurrentProvider();
+  if (!provider) throw new AIError('AI 未配置，请在设置中配置 API Key', 'auth');
+  if (!provider.getConfig().apiKey) throw new AIError('API Key 未设置', 'auth');
+  return provider;
+}
+
 export async function optimizePrompt(
   request: AIOptimizeRequest,
   onChunk?: (chunk: AIStreamChunk) => void,
   signal?: AbortSignal
 ): Promise<string> {
-  const provider = getCurrentProvider();
-  if (!provider) throw new AIError('AI 未配置，请在设置中配置 API Key', 'auth');
+  const provider = requireProvider();
 
   let systemPrompt: string;
   const dims = request.dimensions?.filter((d) => d.enabled);
@@ -143,8 +149,7 @@ export async function generatePrompt(
   onChunk?: (chunk: AIStreamChunk) => void,
   signal?: AbortSignal
 ): Promise<string> {
-  const provider = getCurrentProvider();
-  if (!provider) throw new AIError('AI 未配置', 'auth');
+  const provider = requireProvider();
 
   const systemPrompt =
     '你是一个 Prompt 生成专家。根据用户的需求描述，生成一个高质量的 Prompt。' +
@@ -174,8 +179,7 @@ export async function generateCandidates(
   description: string,
   signal?: AbortSignal
 ): Promise<string> {
-  const provider = getCurrentProvider();
-  if (!provider) throw new AIError('AI 未配置，请在设置中配置 API Key', 'auth');
+  const provider = requireProvider();
 
   return provider.chat(
     [

@@ -29,7 +29,6 @@ export function createProxyFetch(): typeof fetch {
     const method = init?.method ?? 'POST';
     const body = init?.body;
     const signal = init?.signal;
-    console.log(`[fetchWithProxy] → ${urlStr}  method=${method}  body=${typeof body === 'string' ? body.length + 'B' : typeof body}`);
 
     return fetch(PROXY_FALLBACK, { method, headers, body, signal });
   };
