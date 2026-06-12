@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:ext": "tsc -b && vite build --mode extension",
+    "build:ext": "tsc -b && vite build --mode extension && vite build --config vite.content.config.ts",
     "preview": "vite preview"
   },
   "pnpm": {

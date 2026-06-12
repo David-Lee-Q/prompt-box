@@ -22,8 +22,10 @@ import useAppStore from '@/store/useAppStore';
 import type { Prompt, Version } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
-import { Trash2, History, ArrowLeftRight, Copy, Upload, Play, Columns2, BarChart3, FileCode } from 'lucide-react';
+import { Trash2, History, ArrowLeftRight, Copy, Upload, Play, Columns2, BarChart3, FileCode, Send } from 'lucide-react';
 import AgentExportDialog from '@/components/ai/AgentExportDialog';
+import InsertDialog from '@/components/insert/InsertDialog';
+import { getAvailablePlatforms } from '@/services/insertService';
 import { copyToClipboard } from '@/utils/clipboard';
 
 function PanelDragHandle({ onMouseDown, isResizing }: { onMouseDown: (e: React.MouseEvent) => void; isResizing: boolean }) {
@@ -52,6 +54,7 @@ export default function PromptDetailPage() {
   const [showMultiModel, setShowMultiModel] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showAgentExport, setShowAgentExport] = useState(false);
+  const [showInsert, setShowInsert] = useState(false);
   const [analysisReport, setAnalysisReport] = useState<AnalysisReport | null>(null);
   const [viewingVersion, setViewingVersion] = useState<Version | null>(null);
   const [panelWidth, setPanelWidth] = useState(480);
@@ -231,6 +234,11 @@ export default function PromptDetailPage() {
                       <button onClick={() => setShowAgentExport(true)} className="flex items-center gap-1 text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors active:scale-[0.95]" title="导出为 Agent 工具配置">
                         <FileCode className="h-3.5 w-3.5" />导出工具
                       </button>
+                      {getAvailablePlatforms().length > 0 && (
+                        <button onClick={() => setShowInsert(true)} className="flex items-center gap-1 text-xs px-2 py-1 rounded text-primary hover:bg-primary/10 transition-colors active:scale-[0.95]" title="一键插入到 AI 平台">
+                          <Send className="h-3.5 w-3.5" />插入
+                        </button>
+                      )}
                       <button onClick={handleShowVersions} className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors active:scale-[0.95] ${showVersions ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}`}>
                         <History className="h-3.5 w-3.5" />版本历史
                       </button>
@@ -382,6 +390,14 @@ export default function PromptDetailPage() {
           onOpenChange={setShowAgentExport}
           prompt={prompt}
           version={viewingVersion ?? undefined}
+        />
+      )}
+      {prompt && (
+        <InsertDialog
+          open={showInsert}
+          onOpenChange={setShowInsert}
+          content={prompt.content}
+          title={prompt.name}
         />
       )}
       <StatusBar />

@@ -9,9 +9,14 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "permissions": ["tabs"],
   "host_permissions": [
     "https://api.anthropic.com/*",
     "https://api.openai.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.deepseek.com/*"
   ],
   "background": {
     "service_worker": "sw.js"
@@ -26,6 +31,16 @@
     }
   },
   "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.deepseek.com/*"
+      ],
+      "js": ["content-scripts/insert.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }
