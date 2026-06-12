@@ -6,12 +6,12 @@ import type { AIProvider } from './provider';
 import type { AIOptimizeRequest, AIStreamChunk, APIFormat, ProviderConfig } from '@/types/ai';
 import { createProvider } from './registry';
 import { AIError } from './errors';
+// Circular import is safe: only used at runtime (not module init), ES modules handle this
+// eslint-disable-next-line import/no-cycle
+import useSettingsStore from '@/store/settingsStore';
 
 // ── Provider Pool ──
 const providerPool = new Map<string, AIProvider>();
-
-// Module-level current pointer — set by settingsStore, never imports settingsStore
-let current: { provider: AIProvider; id: string } | null = null;
 
 export function getOrCreateProvider(config: ProviderConfig): AIProvider {
   const key = config.id;
@@ -27,17 +27,20 @@ export function getOrCreateProvider(config: ProviderConfig): AIProvider {
   return providerPool.get(key)!;
 }
 
-export function setCurrentProvider(provider: AIProvider, id: string): void {
-  current = { provider, id };
-}
-
 export function evictProvider(providerId: string): void {
   providerPool.delete(providerId);
-  if (current?.id === providerId) current = null;
+}
+
+/** @deprecated — no longer needed; kept for backward compat with settingsStore */
+export function setCurrentProvider(_provider: AIProvider, _id: string): void {
+  // No-op: getCurrentProvider now reads from store directly
 }
 
 export function getCurrentProvider(): AIProvider | null {
-  return current?.provider ?? null;
+  const state = useSettingsStore.getState();
+  const active = state.activeProvider;
+  if (!active?.apiKey) return null;
+  return getOrCreateProvider(active);
 }
 
 // ── Backward-compatible API ──
@@ -61,7 +64,7 @@ export function initAI(settings: {
     baseUrl: settings.baseUrl,
   });
   providerPool.set(id, provider);
-  current = { provider, id };
+  // setCurrentProvider is now a no-op; store-based getCurrentProvider handles this
   return provider;
 }
 

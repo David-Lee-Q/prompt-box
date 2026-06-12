@@ -81,6 +81,7 @@ export class AnthropicProvider implements AIProvider {
   ): Promise<string> {
     const { system, chatMessages } = this.splitMessages(messages);
 
+    let fullText = '';
     const stream = this.client.messages.stream({
       model: this.config.model,
       max_tokens: this.getMaxTokens(),
@@ -98,7 +99,6 @@ export class AnthropicProvider implements AIProvider {
       }
     }
 
-    let fullText = '';
     let lastCleaned = 0;
     stream.on('text', (text) => {
       fullText += text;
@@ -111,6 +111,7 @@ export class AnthropicProvider implements AIProvider {
     try {
       await stream.finalMessage();
     } catch (err) {
+      if (fullText) return stripThinkBlocks(fullText); // return partial content on stream interruption
       throw mapAnthropicError(err);
     } finally {
       if (signal) signal.removeEventListener('abort', onAbort);

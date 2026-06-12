@@ -189,4 +189,13 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
   setShowSettings: (v: boolean) => set({ showSettings: v }),
 }));
 
+// Cross-tab sync: reload settings when another tab changes them
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === SETTINGS_KEY && e.newValue) {
+      useSettingsStore.getState().loadSettings();
+    }
+  });
+}
+
 export default useSettingsStore;

@@ -169,4 +169,13 @@ const useAppStore = create<AppStore>((set, get) => ({
   },
 }));
 
+// Cross-tab sync: reload data when tab becomes visible (other tab may have changed it)
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      const store = useAppStore.getState();
+      store.loadAll().then(() => store.loadPrompts());
+    }
+  });
+}
 export default useAppStore;

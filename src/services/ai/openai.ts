@@ -59,6 +59,7 @@ export class OpenAIProvider implements AIProvider {
     onChunk: (text: string) => void,
     signal?: AbortSignal
   ): Promise<string> {
+    let fullText = '';
     try {
       const stream = await this.client.chat.completions.create(
         {
@@ -74,7 +75,6 @@ export class OpenAIProvider implements AIProvider {
         { signal }
       );
 
-      let fullText = '';
       let lastCleaned = 0;
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content;
@@ -88,6 +88,7 @@ export class OpenAIProvider implements AIProvider {
       }
       return stripThinkBlocks(fullText);
     } catch (err) {
+      if (fullText) return stripThinkBlocks(fullText); // return partial content on stream interruption
       throw mapOpenAIError(err);
     }
   }
