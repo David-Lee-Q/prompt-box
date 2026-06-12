@@ -12,8 +12,7 @@ import { Label } from '@/components/ui/label';
 import useSettingsStore from '@/store/settingsStore';
 import { generateId } from '@/utils/helpers';
 import { toast } from '@/hooks/use-toast';
-import { getOrCreateProvider } from '@/services/ai';
-import { isExtension } from '@/utils/env';
+import { getOrCreateProvider, evictProvider } from '@/services/ai';
 import type { ProviderConfig, APIFormat } from '@/types/ai';
 import { Plus, Trash2, Check, Settings } from 'lucide-react';
 
@@ -104,8 +103,10 @@ export default function AISettings() {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
 
+      // Use unique ID per test to avoid Pool cache returning stale credentials
+      const testId = `test-${form.format}-${Date.now()}`;
       const provider = getOrCreateProvider({
-        id: `test-${form.format}`,
+        id: testId,
         name: 'Test',
         format: form.format,
         apiKey: form.apiKey.trim(),
@@ -114,6 +115,7 @@ export default function AISettings() {
       });
 
       const result = await provider.testConnection(controller.signal);
+      evictProvider(testId); // clean up after test
       clearTimeout(timer);
 
       if (result.ok) {
@@ -123,23 +125,7 @@ export default function AISettings() {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '连接失败';
-
-      // Extension: if baseUrl looks like an external API not in host_permissions, offer to grant access
-      if (isExtension() && form.baseUrl.trim() && msg.includes('网络')) {
-        try {
-          const origin = new URL(form.baseUrl.trim()).origin + '/*';
-          const granted = await chrome.permissions.request({ origins: [origin] });
-          if (granted) {
-            toast({ title: '权限已授予', description: '请再次点击测试连接' });
-          } else {
-            toast({ title: '连接失败', description: msg, variant: 'destructive' });
-          }
-        } catch {
-          toast({ title: '连接失败', description: msg, variant: 'destructive' });
-        }
-      } else {
-        toast({ title: '连接失败', description: msg, variant: 'destructive' });
-      }
+      toast({ title: '连接失败', description: msg, variant: 'destructive' });
     } finally {
       setTesting(false);
     }

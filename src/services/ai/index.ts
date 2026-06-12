@@ -187,6 +187,14 @@ export async function generateCandidates(
 }
 
 export function parseCandidates(text: string): string[] {
-  const parts = text.split(/\n---\n/).filter(Boolean);
-  return parts.map((p) => p.trim()).filter((p) => p.length > 10);
+  // Try multiple split strategies — different models format separators differently
+  // Try from most-specific to least-specific separator pattern
+  const patterns = [/\n\n---\n\n/, /\n---\n/, /\n---/, /---\n/, /^---$/m, /---/];
+  let parts: string[] = [];
+  for (const re of patterns) {
+    parts = text.split(re).filter(Boolean).map(p => p.trim()).filter(p => p.length > 10);
+    if (parts.length >= 2) return parts;
+  }
+  // Fallback: if nothing works, treat the whole response as one candidate
+  return [text.trim()].filter(p => p.length > 10);
 }
