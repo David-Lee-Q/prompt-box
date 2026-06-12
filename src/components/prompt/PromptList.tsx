@@ -24,7 +24,7 @@ export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }:
   const [versionMap, setVersionMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (viewMode === 'table' && prompts.length > 0) {
+    if (prompts.length > 0) {
       getVersionMap(prompts.map((p) => p.id)).then(setVersionMap);
     }
   }, [viewMode, prompts]);
