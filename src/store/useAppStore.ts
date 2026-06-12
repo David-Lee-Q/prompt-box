@@ -14,6 +14,7 @@ interface AppStore {
   filterTag: string | null;
   dateRange: { from: number | null; to: number | null };
   isLoading: boolean;
+  loadError: string | null;
   viewMode: 'card' | 'table';
   storageInfo: { used: number; quota: number | null };
   searchHistory: string[];
@@ -55,18 +56,19 @@ const useAppStore = create<AppStore>((set, get) => ({
   filterTag: null,
   dateRange: { from: null, to: null },
   isLoading: false,
+  loadError: null,
   viewMode: (localStorage.getItem('ai-prompt-manager-view-mode') as 'card' | 'table') || 'card',
   storageInfo: { used: 0, quota: null },
   searchHistory: loadSearchHistory(),
 
   loadAll: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, loadError: null });
     try {
       const scenes = await getScenes();
       set({ scenes, isLoading: false });
       await get().refreshStorageInfo();
     } catch {
-      set({ isLoading: false });
+      set({ isLoading: false, loadError: '数据加载失败，请刷新页面重试' });
     }
   },
 

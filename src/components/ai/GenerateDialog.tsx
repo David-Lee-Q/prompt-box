@@ -167,6 +167,9 @@ export default function GenerateDialog({
             </div>
           )}
 
+          {candidates.length === 0 && !isGenerating && !error && description.trim() && (
+            <p className="text-sm text-muted-foreground text-center">AI 未返回有效方案，请重试</p>
+          )}
           {candidates.length > 0 && !isGenerating && editingId !== 'edit' && (
             <div className="space-y-3">
               {candidates.map((c, i) => (

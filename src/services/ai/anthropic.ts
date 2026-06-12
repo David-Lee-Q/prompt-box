@@ -21,7 +21,11 @@ export function mapAnthropicError(err: unknown): AIError {
     return new AIError(e.message || 'Anthropic API error', code, e.status, err);
   }
   if (err instanceof TypeError) {
-    return new AIError('网络请求失败，请检查网络或 API 地址', 'network');
+    if (err.message === 'Failed to fetch' || err.message.includes('fetch')) {
+      return new AIError('网络请求失败，请检查网络或 API 地址', 'network');
+    }
+    console.error('[Anthropic] unexpected TypeError:', err);
+    return new AIError(err.message, 'unknown');
   }
   return new AIError(err instanceof Error ? err.message : '未知错误', 'unknown');
 }

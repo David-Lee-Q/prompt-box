@@ -1,29 +1,19 @@
 import { Star, Clock, FileText, Tag } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDate } from '@/utils/helpers';
-import { getVersion } from '@/services/versionService';
 import HighlightText from '@/components/search/HighlightText';
 import useAppStore from '@/store/useAppStore';
 import type { Prompt } from '@/types';
-import { useState, useEffect } from 'react';
 
 interface PromptCardProps {
   prompt: Prompt;
   onClick: () => void;
   onToggleStar: () => void;
+  versionStr?: string;
 }
 
-export default function PromptCard({ prompt, onClick, onToggleStar }: PromptCardProps) {
+export default function PromptCard({ prompt, onClick, onToggleStar, versionStr }: PromptCardProps) {
   const searchQuery = useAppStore((s) => s.searchQuery);
-  const [versionStr, setVersionStr] = useState('');
-
-  useEffect(() => {
-    if (prompt.currentVersionId) {
-      getVersion(prompt.currentVersionId).then((v) => {
-        if (v) setVersionStr(v.version);
-      });
-    }
-  }, [prompt.currentVersionId]);
 
   return (
     <Card

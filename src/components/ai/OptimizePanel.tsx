@@ -156,6 +156,7 @@ export default function OptimizePanel({ content, onApply, onClose }: OptimizePan
   };
 
   // Inject enabled dimension findings into the instruction Textarea
+  // Inject enabled dimension findings; clear when all unchecked
   useEffect(() => {
     const enabledFindings = dims
       .filter((d) => d.enabled && d.findings)
@@ -164,7 +165,8 @@ export default function OptimizePanel({ content, onApply, onClose }: OptimizePan
     if (enabledFindings) {
       setInstruction(enabledFindings);
       setActivePreset(null);
-    } else {
+    } else if (!activePreset) {
+      // No dims enabled and no preset active → clear instruction
       setInstruction('');
     }
   }, [dims]);
@@ -243,6 +245,8 @@ export default function OptimizePanel({ content, onApply, onClose }: OptimizePan
                   } else {
                     setInstruction(p.text);
                     setActivePreset(p.name);
+                    // Uncheck all dimensions — preset and dimensions are mutually exclusive
+                    setDims((prev) => prev.map((d) => ({ ...d, enabled: false })));
                   }
                 }}
                 className={`inline-flex items-center px-2 py-1 rounded text-xs border transition-colors ${

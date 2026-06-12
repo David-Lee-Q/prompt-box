@@ -210,6 +210,7 @@ export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }:
             <PromptCard
               key={prompt.id}
               prompt={prompt}
+              versionStr={versionMap[prompt.id]}
               onClick={() => onPromptClick(prompt.id)}
               onToggleStar={() => onToggleStar(prompt.id, !prompt.isStarred)}
             />

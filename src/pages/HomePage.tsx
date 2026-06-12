@@ -21,6 +21,7 @@ export default function HomePage() {
     loadAll,
     loadPrompts,
     activeSceneId,
+    loadError,
   } = useAppStore();
 
   const [sceneFormOpen, setSceneFormOpen] = useState(false);
@@ -133,6 +134,12 @@ export default function HomePage() {
   return (
     <div className="h-screen flex flex-col">
       <Header onNewPrompt={handleNewPrompt} />
+      {loadError && (
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 text-sm text-destructive flex items-center gap-2">
+          <span>{loadError}</span>
+          <button onClick={() => loadAll()} className="underline hover:text-destructive/80">重试</button>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         <button

@@ -62,6 +62,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   const { hasVariables } = useVariables(content);
   const [editorHeight, setEditorHeight] = useState(300);
   const [isResizingEditor, setIsResizingEditor] = useState(false);
+  const isReadyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -71,15 +72,13 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   useEffect(() => {
     if (prompt) {
       const saved = draftKey ? localStorage.getItem(draftKey) : null;
-      if (saved) {
-        try {
-          const draft = JSON.parse(saved);
-          setName(draft.name ?? prompt.name);
-          setContent(draft.content ?? prompt.content);
-        } catch {
-          setName(prompt.name);
-          setContent(prompt.content);
-        }
+      const draft = saved ? (() => { try { return JSON.parse(saved); } catch { return null; } })() : null;
+      // Treat empty draft as no draft (both name and content empty)
+      if (draft && (draft.content || draft.name)) {
+        setName(draft.name || prompt.name);
+        setContent(draft.content || prompt.content);
+        // Clean up the stale empty draft so next load is fast
+        if (!draft.content && draftKey) localStorage.removeItem(draftKey);
       } else {
         setName(prompt.name);
         setContent(prompt.content);
@@ -107,6 +106,8 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
     }
     if (sceneId) setCreateSceneId(sceneId);
     getAllTags().then(setAllTags);
+    // Only mark ready once content is actually initialized (prompt loaded or in create mode)
+    if (prompt || sceneId) isReadyRef.current = true;
   }, [prompt, sceneId]);
 
   // Set content from readOnlyContent when in readonly mode
@@ -121,10 +122,10 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   // Save draft to localStorage
   const saveDraft = useRef(() => {});
   saveDraft.current = () => {
-    if (readOnly || !draftKey) return;
+    if (readOnly || !draftKey || !isReadyRef.current) return;
     const currentName = name;
     const currentContent = content;
-    if (currentContent !== prompt?.content || currentName !== prompt?.name) {
+    if (currentContent !== prompt!.content || currentName !== prompt!.name) {
       localStorage.setItem(
         draftKey,
         JSON.stringify({ name: currentName, content: currentContent })

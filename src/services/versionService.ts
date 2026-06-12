@@ -34,12 +34,14 @@ export async function rollbackToVersion(promptId: string, versionId: string) {
 }
 
 export async function deleteVersion(id: string): Promise<void> {
-  const version = await db.versions.get(id);
-  if (!version) return;
-  if (version.isProtected || version.isInitial) {
-    throw new Error('受保护版本或初始版本不可删除');
-  }
-  await db.versions.delete(id);
+  await db.transaction('rw', db.versions, async () => {
+    const version = await db.versions.get(id);
+    if (!version) return;
+    if (version.isProtected || version.isInitial) {
+      throw new Error('受保护版本或初始版本不可删除');
+    }
+    await db.versions.delete(id);
+  });
 }
 
 export async function toggleVersionProtection(id: string, isProtected: boolean): Promise<void> {

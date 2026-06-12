@@ -118,7 +118,8 @@ function waitForInput(timeoutMs = 15000): Promise<InputTarget | null> {
 
 // ── Message handler ──
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id) return false;
   if (msg.type === 'DEBUG_DOM') {
     const items: string[] = [];
     function scan(root: Document | ShadowRoot, prefix: string) {

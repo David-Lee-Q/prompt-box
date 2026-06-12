@@ -38,8 +38,12 @@ export async function savePrompt(
   prompt: Partial<Prompt> & { sceneId: string; name: string },
   changeLog: string = '更新内容'
 ) {
-  return db.transaction('rw', db.prompts, db.versions, async () => {
+  return db.transaction('rw', db.scenes, db.prompts, db.versions, async () => {
     const now = Date.now();
+
+    // Validate sceneId exists to prevent orphan prompts
+    const scene = await db.scenes.get(prompt.sceneId);
+    if (!scene) throw new Error('场景不存在');
 
     if (prompt.id) {
       const existingPrompt = await db.prompts.get(prompt.id);
