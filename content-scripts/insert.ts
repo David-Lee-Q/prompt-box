@@ -66,9 +66,10 @@ function insertText(target: InputTarget, text: string): boolean {
 // ── Overwrite check ──
 
 function isInputNonEmpty(target: InputTarget): boolean {
-  if (target.type === 'contenteditable') {
-    return !!(target.element as HTMLElement).textContent?.trim();
-  }
+  // Only check textarea (reliable value property).
+  // Contenteditable frameworks use various placeholder implementations
+  // (pseudo-elements, DOM text nodes, attributes) — not reliably checkable.
+  if (target.type === 'contenteditable') return false;
   return !!(target.element as HTMLTextAreaElement).value?.trim();
 }
 
@@ -89,7 +90,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       return;
     }
     if (isInputNonEmpty(target) && !msg.force) {
-      sendResponse({ success: false, error: 'INPUT_NOT_EMPTY' });
+      const existingText = target.type === 'contenteditable'
+        ? (target.element as HTMLElement).innerText
+        : (target.element as HTMLTextAreaElement).value;
+      sendResponse({ success: false, error: 'INPUT_NOT_EMPTY', detail: `Existing content: "${existingText?.slice(0, 50)}"` });
       return;
     }
     const ok = insertText(target, msg.text);

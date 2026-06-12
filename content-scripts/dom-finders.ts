@@ -3,45 +3,62 @@ export interface InputTarget {
   type: 'contenteditable' | 'textarea' | 'input';
 }
 
-function resolveSelectors(
-  selectors: string[],
-  defaultType: 'contenteditable' | 'textarea'
-): InputTarget | null {
+// ── Heuristic: visible, large, bottom-most input (ALWAYS used as fallback) ──
+
+function heuristicFindInput(): InputTarget | null {
+  const candidates = [
+    ...Array.from(document.querySelectorAll('[contenteditable="true"]')),
+    ...Array.from(document.querySelectorAll('textarea')),
+  ];
+  const visible = candidates
+    .filter((el) => {
+      const rect = el.getBoundingClientRect();
+      return rect.width > 100 && rect.height > 30 && rect.bottom < window.innerHeight + 200;
+    })
+    .sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom);
+
+  const best = visible[0] as HTMLElement | undefined;
+  if (!best) return null;
+
+  return {
+    element: best,
+    type: best.tagName === 'TEXTAREA' ? 'textarea' : 'contenteditable',
+  };
+}
+
+// ── Generic helper: try exact selectors first, then fall to heuristic ──
+
+function tryExact(selectors: string[]): InputTarget | null {
   for (const sel of selectors) {
     const el = document.querySelector(sel);
     if (el) {
-      const tag = el.tagName.toUpperCase();
-      return {
-        element: el as HTMLElement,
-        type: tag === 'TEXTAREA' || tag === 'INPUT' ? 'textarea' : defaultType,
-      };
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 100 && rect.height > 30) {
+        const tag = el.tagName.toUpperCase();
+        return {
+          element: el as HTMLElement,
+          type: tag === 'TEXTAREA' || tag === 'INPUT' ? 'textarea' : 'contenteditable',
+        };
+      }
     }
   }
   return null;
 }
 
-function findVisibleTextarea(selector: string): InputTarget | null {
-  const textareas = document.querySelectorAll(selector);
-  for (const el of textareas) {
-    const rect = el.getBoundingClientRect();
-    if (rect.width > 200 && rect.height > 40 && rect.bottom < window.innerHeight + 200) {
-      return { element: el as HTMLElement, type: 'textarea' };
-    }
-  }
-  return null;
-}
-
-// ── Platform finders (DeepSeek → 豆包 → Kimi → 千问 → ChatGPT → Gemini) ──
+// ── Platform finders: exact selectors first, then heuristic ──
 
 function findDeepSeekInput(): InputTarget | null {
-  return resolveSelectors([
-    '#chat-input',
-    'textarea[placeholder*="Send a message"]',
-  ], 'textarea') || findVisibleTextarea('textarea');
+  return tryExact(['#chat-input', 'textarea[placeholder*="Send"]']) || heuristicFindInput();
+}
+
+function findDoubaoInput(): InputTarget | null {
+  const direct = tryExact(['textarea.semi-input-textarea', '[data-testid="chat_input_input"]']);
+  if (direct) return direct;
+  // Shadow DOM search
+  return findInShadowRoots(document) || heuristicFindInput();
 }
 
 function findInShadowRoots(root: Document | ShadowRoot): InputTarget | null {
-  // Search light DOM first
   const light = root.querySelectorAll('textarea');
   for (const el of light) {
     const rect = el.getBoundingClientRect();
@@ -49,7 +66,6 @@ function findInShadowRoots(root: Document | ShadowRoot): InputTarget | null {
       return { element: el as HTMLElement, type: 'textarea' };
     }
   }
-  // Recurse into shadow roots
   for (const el of root.querySelectorAll('*')) {
     if (el.shadowRoot) {
       const found = findInShadowRoots(el.shadowRoot);
@@ -59,44 +75,20 @@ function findInShadowRoots(root: Document | ShadowRoot): InputTarget | null {
   return null;
 }
 
-function findDoubaoInput(): InputTarget | null {
-  // 豆包使用 Semi Design UI + DOUBAO-AI-CSUI Shadow DOM
-  const direct = document.querySelector('textarea.semi-input-textarea')
-    || document.querySelector('[data-testid="chat_input_input"]');
-  if (direct) {
-    return { element: direct as HTMLElement, type: 'textarea' };
-  }
-  return findInShadowRoots(document);
-}
-
 function findKimiInput(): InputTarget | null {
-  return resolveSelectors([
-    'div[contenteditable="true"]',
-    'textarea',
-  ], 'contenteditable');
+  return heuristicFindInput();
 }
 
 function findQwenInput(): InputTarget | null {
-  return resolveSelectors([
-    'div[contenteditable="true"]',
-    'textarea',
-  ], 'contenteditable');
+  return heuristicFindInput();
 }
 
 function findChatGPTInput(): InputTarget | null {
-  return resolveSelectors([
-    '#prompt-textarea',
-    '[data-testid="prompt-textarea"]',
-    'form [contenteditable="true"]',
-  ], 'contenteditable');
+  return tryExact(['#prompt-textarea', '[data-testid="prompt-textarea"]']) || heuristicFindInput();
 }
 
 function findGeminiInput(): InputTarget | null {
-  return resolveSelectors([
-    'rich-textarea [contenteditable="true"]',
-    'div[role="textbox"][contenteditable]',
-    '[contenteditable="true"]',
-  ], 'contenteditable');
+  return tryExact(['rich-textarea [contenteditable="true"]', 'div[role="textbox"][contenteditable]']) || heuristicFindInput();
 }
 
 // ── Registry ──
@@ -104,7 +96,7 @@ function findGeminiInput(): InputTarget | null {
 const finders: Record<string, () => InputTarget | null> = {
   'chat.deepseek.com': findDeepSeekInput,
   'doubao.com': findDoubaoInput,
-  'kimi.com': findKimiInput,             // covers kimi.com & kimi.moonshot.cn
+  'kimi.com': findKimiInput,
   'kimi.moonshot.cn': findKimiInput,
   'qianwen.com': findQwenInput,
   'tongyi.aliyun.com': findQwenInput,
@@ -132,27 +124,4 @@ export function findInputField(): InputTarget | null {
     }
   }
   return heuristicFindInput();
-}
-
-// ── 启发式兜底 ──
-
-function heuristicFindInput(): InputTarget | null {
-  const candidates = [
-    ...Array.from(document.querySelectorAll('[contenteditable="true"]')),
-    ...Array.from(document.querySelectorAll('textarea')),
-  ];
-  const visible = candidates
-    .filter((el) => {
-      const rect = el.getBoundingClientRect();
-      return rect.width > 100 && rect.height > 30 && rect.bottom < window.innerHeight + 200;
-    })
-    .sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom);
-
-  const best = visible[0] as HTMLElement | undefined;
-  if (!best) return null;
-
-  return {
-    element: best,
-    type: best.tagName === 'TEXTAREA' ? 'textarea' : 'contenteditable',
-  };
 }

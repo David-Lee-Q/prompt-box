@@ -13,6 +13,7 @@ import useSettingsStore from '@/store/settingsStore';
 import { generateId } from '@/utils/helpers';
 import { toast } from '@/hooks/use-toast';
 import { getOrCreateProvider } from '@/services/ai';
+import { isExtension } from '@/utils/env';
 import type { ProviderConfig, APIFormat } from '@/types/ai';
 import { Plus, Trash2, Check, Settings } from 'lucide-react';
 
@@ -122,7 +123,23 @@ export default function AISettings() {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '连接失败';
-      toast({ title: '连接失败', description: msg, variant: 'destructive' });
+
+      // Extension: if baseUrl looks like an external API not in host_permissions, offer to grant access
+      if (isExtension() && form.baseUrl.trim() && msg.includes('网络')) {
+        try {
+          const origin = new URL(form.baseUrl.trim()).origin + '/*';
+          const granted = await chrome.permissions.request({ origins: [origin] });
+          if (granted) {
+            toast({ title: '权限已授予', description: '请再次点击测试连接' });
+          } else {
+            toast({ title: '连接失败', description: msg, variant: 'destructive' });
+          }
+        } catch {
+          toast({ title: '连接失败', description: msg, variant: 'destructive' });
+        }
+      } else {
+        toast({ title: '连接失败', description: msg, variant: 'destructive' });
+      }
     } finally {
       setTesting(false);
     }

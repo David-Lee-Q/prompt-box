@@ -39,7 +39,7 @@ async function sendMessageWithRetry(
         return { success: false, message: `无法定位输入框（${result?.detail || '页面可能尚未加载完'}）`, code: 'INPUT_NOT_FOUND' };
       }
       if (result?.error === 'INPUT_NOT_EMPTY') {
-        return { success: false, message: '输入框已有内容', code: 'INPUT_NOT_EMPTY' };
+        return { success: false, message: `输入框已有内容（${result?.detail || ''}）`, code: 'INPUT_NOT_EMPTY' };
       }
     } catch {
       if (i < maxRetries - 1) {

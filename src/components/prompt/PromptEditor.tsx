@@ -60,6 +60,8 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   const { resolvedTheme } = useTheme();
   const { isConfigured } = useSettingsStore();
   const { hasVariables } = useVariables(content);
+  const [editorHeight, setEditorHeight] = useState(300);
+  const [isResizingEditor, setIsResizingEditor] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -204,6 +206,21 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
     }
   };
 
+  // Editor resize handler
+  useEffect(() => {
+    if (!isResizingEditor) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      setEditorHeight((prev) => Math.max(120, Math.min(1200, prev + e.movementY)));
+    };
+    const handleMouseUp = () => setIsResizingEditor(false);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingEditor]);
+
   useKeyboardShortcuts(readOnly ? {} : {
     'Ctrl+S': handleSave,
     'Ctrl+I': () => { if (content && isConfigured) setShowOptimize(true); },
@@ -339,7 +356,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
               onChange={(val) => setContent(val)}
               readOnly={readOnly}
               extensions={[markdown(), json(), EditorView.lineWrapping]}
-              height="300px"
+              height={`${editorHeight}px`}
               placeholder="在此输入提示词内容..."
               theme={resolvedTheme === 'dark' ? oneDark : undefined}
               basicSetup={{
@@ -349,6 +366,13 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
                 autocompletion: false,
               }}
             />
+            {!readOnly && (
+              <div
+                onMouseDown={(e) => { e.preventDefault(); setIsResizingEditor(true); }}
+                className="h-2 cursor-row-resize bg-transparent hover:bg-primary/20 transition-colors rounded-b-md"
+                title="拖动调整编辑框高度"
+              />
+            )}
           </div>
         </div>
 

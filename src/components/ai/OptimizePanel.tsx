@@ -3,6 +3,7 @@ import { Sparkles, Loader2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { optimizePrompt } from '@/services/ai';
+import { friendlyErrorMessage } from '@/services/ai/messages';
 import { analyzePrompt } from '@/services/promptAnalyzer';
 import type { OptimizeDimension } from '@/types/ai';
 import useSettingsStore from '@/store/settingsStore';
@@ -191,7 +192,7 @@ export default function OptimizePanel({ content, onApply, onClose }: OptimizePan
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
-      setError(err instanceof Error ? err.message : '优化请求失败');
+      setError(friendlyErrorMessage(err, '优化请求失败'));
     } finally {
       setIsOptimizing(false);
       abortRef.current = null;

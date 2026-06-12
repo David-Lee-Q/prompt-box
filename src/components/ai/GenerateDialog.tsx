@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { generateCandidates, parseCandidates } from '@/services/ai';
+import { friendlyErrorMessage } from '@/services/ai/messages';
 import useSettingsStore from '@/store/settingsStore';
 
 interface GenerateDialogProps {
@@ -60,7 +61,7 @@ export default function GenerateDialog({
       );
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
-      setError(err instanceof Error ? err.message : '生成失败');
+      setError(friendlyErrorMessage(err, '生成失败'));
     } finally {
       setIsGenerating(false);
       abortRef.current = null;
