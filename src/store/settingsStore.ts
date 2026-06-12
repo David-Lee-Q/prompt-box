@@ -40,11 +40,11 @@ async function loadSettings(): Promise<AISettings | null> {
       const providers: ProviderConfig[] = [];
       if (parsed.openai?.apiKey) {
         const id = generateId();
-        providers.push({ id, name: 'OpenAI', format: 'openai', apiKey: parsed.openai.apiKey, baseUrl: parsed.openai.baseUrl || '', model: parsed.openai.model || 'gpt-4o' });
+        providers.push({ id, name: 'OpenAI', format: 'openai', apiKey: parsed.openai.apiKey, baseUrl: parsed.openai.baseUrl || '', model: parsed.openai.model || '' });
       }
       if (parsed.anthropic?.apiKey) {
         const id = generateId();
-        providers.push({ id, name: 'Anthropic', format: 'anthropic', apiKey: parsed.anthropic.apiKey, baseUrl: parsed.anthropic.baseUrl || '', model: parsed.anthropic.model || 'claude-sonnet-4-6' });
+        providers.push({ id, name: 'Anthropic', format: 'anthropic', apiKey: parsed.anthropic.apiKey, baseUrl: parsed.anthropic.baseUrl || '', model: parsed.anthropic.model || '' });
       }
       if (providers.length > 0) {
         return { providers, activeProviderId: providers[0]!.id };
