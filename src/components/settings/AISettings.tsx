@@ -199,18 +199,18 @@ export default function AISettings() {
                   {editingId === p.id && (
                     <div className="mt-1.5 space-y-3 rounded-lg border p-3">
                       <div className="space-y-1.5">
-                        <Label htmlFor="ai-provider">AI 提供商</Label>
+                        <Label htmlFor="edit-provider">AI 提供商</Label>
                         <Input
-                          id="ai-provider"
+                          id="edit-provider"
                           value={form.name}
                           onChange={(e) => setForm({ ...form, name: e.target.value })}
                           placeholder="如：OpenAI、DeepSeek、Anthropic..."
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="ai-format">API 格式</Label>
+                        <Label htmlFor="edit-format">API 格式</Label>
                         <select
-                          id="ai-format"
+                          id="edit-format"
                           value={form.format}
                           onChange={(e) => setForm({ ...form, format: e.target.value as APIFormat })}
                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -220,9 +220,9 @@ export default function AISettings() {
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="ai-baseurl">请求地址 / Base URL</Label>
+                        <Label htmlFor="edit-baseurl">请求地址 / Base URL</Label>
                         <Input
-                          id="ai-baseurl"
+                          id="edit-baseurl"
                           value={form.baseUrl}
                           onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
                           placeholder="留空使用默认端点"
@@ -250,9 +250,9 @@ export default function AISettings() {
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="ai-model">模型 ID</Label>
+                        <Label htmlFor="edit-model">模型 ID</Label>
                         <Input
-                          id="ai-model"
+                          id="edit-model"
                           value={form.model}
                           onChange={(e) => setForm({ ...form, model: e.target.value })}
                           placeholder="如：gpt-4o、deepseek-chat..."
@@ -292,9 +292,9 @@ export default function AISettings() {
           {adding && (
             <div className="space-y-3 rounded-lg border p-3">
               <div className="space-y-1.5">
-                <Label htmlFor="ai-provider">AI 提供商</Label>
+                <Label htmlFor="add-provider">AI 提供商</Label>
                 <Input
-                  id="ai-provider"
+                  id="add-provider"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="如：OpenAI、DeepSeek、Anthropic..."
@@ -302,9 +302,9 @@ export default function AISettings() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="ai-format">API 格式</Label>
+                <Label htmlFor="add-format">API 格式</Label>
                 <select
-                  id="ai-format"
+                  id="add-format"
                   value={form.format}
                   onChange={(e) => setForm({ ...form, format: e.target.value as APIFormat })}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -315,9 +315,9 @@ export default function AISettings() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="ai-baseurl">请求地址 / Base URL</Label>
+                <Label htmlFor="add-baseurl">请求地址 / Base URL</Label>
                 <Input
-                  id="ai-baseurl"
+                  id="add-baseurl"
                   value={form.baseUrl}
                   onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
                   placeholder="留空使用默认端点"
@@ -347,9 +347,9 @@ export default function AISettings() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="ai-model">模型 ID</Label>
+                <Label htmlFor="add-model">模型 ID</Label>
                 <Input
-                  id="ai-model"
+                  id="add-model"
                   value={form.model}
                   onChange={(e) => setForm({ ...form, model: e.target.value })}
                   placeholder="如：gpt-4o、deepseek-chat..."

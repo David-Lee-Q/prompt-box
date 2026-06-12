@@ -58,10 +58,10 @@ test.describe('v2.0 AI 功能测试', () => {
   test('点击添加提供商后显示配置表单', async ({ page }) => {
     await page.getByTitle('AI 设置').click();
     await page.getByRole('button', { name: '添加提供商' }).click();
-    await expect(page.locator('#ai-provider')).toBeVisible();
-    await expect(page.locator('#ai-format')).toBeVisible();
-    await expect(page.locator('#ai-apikey')).toBeVisible();
-    await expect(page.locator('#ai-model')).toBeVisible();
+    await expect(page.locator('#add-provider')).toBeVisible();
+    await expect(page.locator('#add-format')).toBeVisible();
+    await expect(page.locator('#add-apikey')).toBeVisible();
+    await expect(page.locator('#add-model')).toBeVisible();
   });
 
   // ---- Step 3: Variable Template System ----
