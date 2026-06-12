@@ -1,7 +1,7 @@
 import { isExtension } from '@/utils/env';
 import { copyToClipboard } from '@/utils/clipboard';
 
-interface InsertResult { success: boolean; message: string; platform?: string; code?: 'INPUT_NOT_FOUND' | 'INPUT_NOT_EMPTY' | 'MULTIPLE_TABS'; }
+interface InsertResult { success: boolean; message: string; platform?: string; tabId?: number; code?: 'INPUT_NOT_FOUND' | 'INPUT_NOT_EMPTY' | 'MULTIPLE_TABS'; }
 
 interface PlatformInfo {
   domain: string;
@@ -77,7 +77,7 @@ async function sendMessageWithRetry(
       const result = await chrome.tabs.sendMessage(tabId, {
         type: 'INSERT_PROMPT', text, force,
       });
-      if (result?.success) return result;
+      if (result?.success) return { ...result, tabId };
       if (result?.error === 'INPUT_NOT_FOUND') {
         return { success: false, message: `无法定位输入框（${result?.detail || ''}）`, code: 'INPUT_NOT_FOUND' };
       }

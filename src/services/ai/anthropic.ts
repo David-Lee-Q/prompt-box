@@ -140,22 +140,25 @@ export class AnthropicProvider implements AIProvider {
   }
 
   async testConnection(signal?: AbortSignal): Promise<{ ok: boolean; latency: number; error?: string }> {
+    if (signal?.aborted) return { ok: false, latency: 0, error: '请求已取消' };
     const start = Date.now();
     const internalCtrl = new AbortController();
     const timeout = setTimeout(() => internalCtrl.abort(), 20000);
+    const onExternalAbort = () => internalCtrl.abort();
     try {
-      const effectiveSignal = signal ?? internalCtrl.signal;
+      if (signal) signal.addEventListener('abort', onExternalAbort, { once: true });
       await this.client.messages.create({
         model: this.config.model,
         max_tokens: 1,
         messages: [{ role: 'user', content: 'Hi' }],
-      }, { signal: effectiveSignal });
+      }, { signal: internalCtrl.signal });
       return { ok: true, latency: Date.now() - start };
     } catch (err) {
       const mapped = mapAnthropicError(err);
       return { ok: false, latency: Date.now() - start, error: mapped.message };
     } finally {
       clearTimeout(timeout);
+      if (signal) signal.removeEventListener('abort', onExternalAbort);
     }
   }
 

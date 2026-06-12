@@ -13,7 +13,7 @@ function heuristicFindInput(): InputTarget | null {
   const visible = candidates
     .filter((el) => {
       const rect = el.getBoundingClientRect();
-      return rect.width > 100 && rect.height > 30 && rect.bottom < window.innerHeight + 200;
+      return rect.width > 100 && rect.height > 20 && rect.bottom < window.innerHeight + 200;
     })
     .sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom);
 
@@ -33,7 +33,8 @@ function tryExact(selectors: string[]): InputTarget | null {
     const el = document.querySelector(sel);
     if (el) {
       const rect = el.getBoundingClientRect();
-      if (rect.width > 100 && rect.height > 30) {
+      // Min height 20px — some platforms use auto-resize textareas (初始 ~24px)
+      if (rect.width > 100 && rect.height > 20) {
         const tag = el.tagName.toUpperCase();
         return {
           element: el as HTMLElement,
@@ -59,20 +60,32 @@ function findDoubaoInput(): InputTarget | null {
 }
 
 function findInShadowRoots(root: Document | ShadowRoot): InputTarget | null {
-  const light = root.querySelectorAll('textarea');
-  for (const el of light) {
+  // Collect all valid candidates from all shadow layers, then pick bottom-most
+  const candidates: InputTarget[] = [];
+  collectTextareas(root, candidates);
+  return pickBottomMost(candidates);
+}
+
+function collectTextareas(root: Document | ShadowRoot, out: InputTarget[]): void {
+  const textareas = root.querySelectorAll('textarea');
+  for (const el of textareas) {
     const rect = el.getBoundingClientRect();
-    if (rect.width > 100 && rect.height > 30) {
-      return { element: el as HTMLElement, type: 'textarea' };
+    if (rect.width > 100 && rect.height > 20) {
+      out.push({ element: el as HTMLElement, type: 'textarea' });
     }
   }
   for (const el of root.querySelectorAll('*')) {
     if (el.shadowRoot) {
-      const found = findInShadowRoots(el.shadowRoot);
-      if (found) return found;
+      collectTextareas(el.shadowRoot, out);
     }
   }
-  return null;
+}
+
+function pickBottomMost(candidates: InputTarget[]): InputTarget | null {
+  if (candidates.length === 0) return null;
+  return candidates.sort((a, b) =>
+    b.element.getBoundingClientRect().bottom - a.element.getBoundingClientRect().bottom
+  )[0]!;
 }
 
 function findKimiInput(): InputTarget | null {

@@ -142,7 +142,14 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [draftKey]);
+  }, [readOnly, draftKey]);
+
+  // Save draft on unmount (SPA navigation — beforeunload does NOT fire)
+  useEffect(() => {
+    return () => {
+      saveDraft.current();
+    };
+  }, [readOnly, draftKey]);
 
   // Save draft on page close/refresh (skipped in readonly mode)
   useEffect(() => {

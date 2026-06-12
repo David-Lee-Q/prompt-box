@@ -88,6 +88,11 @@ export default function InsertDialog({ open, onOpenChange, content, title }: Ins
     setIsInserting(false);
 
     if (result.success) {
+      if (result.tabId) {
+        const tab = await chrome.tabs.get(result.tabId);
+        chrome.tabs.update(result.tabId, { active: true });
+        if (tab.windowId) chrome.windows.update(tab.windowId, { focused: true, drawAttention: true });
+      }
       toast({ title: '插入成功', description: `已填入 ${getPlatformLabel(platform)}` });
       onOpenChange(false);
     } else if (result.code === 'INPUT_NOT_EMPTY') {
@@ -100,6 +105,7 @@ export default function InsertDialog({ open, onOpenChange, content, title }: Ins
         if (tab?.id != null) {
           const r = await insertPrompt(platform, resolved, tab.id, force);
           if (r.success) {
+            if (tab?.id != null) chrome.tabs.update(tab.id, { active: true });
             toast({ title: '插入成功' });
             onOpenChange(false);
           } else {

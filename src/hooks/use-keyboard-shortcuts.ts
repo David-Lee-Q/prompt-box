@@ -1,10 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface ShortcutMap {
   [key: string]: () => void;
 }
 
 export function useKeyboardShortcuts(shortcuts: ShortcutMap) {
+  const shortcutsRef = useRef(shortcuts);
+
+  useEffect(() => {
+    shortcutsRef.current = shortcuts;
+  });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = [
@@ -15,19 +21,20 @@ export function useKeyboardShortcuts(shortcuts: ShortcutMap) {
         .filter(Boolean)
         .join('+');
 
-      const action = shortcuts[key];
+      const current = shortcutsRef.current;
+      const action = current[key];
       if (action) {
         e.preventDefault();
         action();
+        return;
       }
 
-      // Escape
-      if (e.key === 'Escape' && shortcuts['Escape']) {
-        shortcuts['Escape']();
+      if (e.key === 'Escape' && current['Escape']) {
+        current['Escape']();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [shortcuts]);
+  }, []); // register once — read latest shortcuts via ref
 }

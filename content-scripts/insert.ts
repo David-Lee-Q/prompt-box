@@ -33,11 +33,12 @@ function insertIntoContentEditable(el: HTMLElement, text: string): boolean {
   if (insertViaProseMirror(el, text)) return true;
   el.focus();
   el.textContent = text;
-  // Use InputEvent for React 17+ synthetic event compatibility
+  // Use InputEvent for React 17+ synthetic event compatibility.
+  // composed: true — needed for Shadow DOM (豆包, Gemini)
   el.dispatchEvent(new InputEvent('input', {
-    bubbles: true, cancelable: true, inputType: 'insertText', data: text,
+    bubbles: true, cancelable: true, composed: true, inputType: 'insertText', data: text,
   }));
-  el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
   const sel = window.getSelection();
   if (sel) { sel.selectAllChildren(el); sel.collapseToEnd(); }
   return true;
@@ -50,9 +51,9 @@ function insertIntoTextarea(el: HTMLTextAreaElement, text: string): void {
   )?.set;
   if (nativeSetter) { nativeSetter.call(el, text); } else { el.value = text; }
   el.dispatchEvent(new InputEvent('input', {
-    bubbles: true, cancelable: true, inputType: 'insertText', data: text,
+    bubbles: true, cancelable: true, composed: true, inputType: 'insertText', data: text,
   }));
-  el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
 }
 
 function insertText(target: InputTarget, text: string): boolean {
@@ -118,6 +119,25 @@ function waitForInput(timeoutMs = 15000): Promise<InputTarget | null> {
 // ── Message handler ──
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'DEBUG_DOM') {
+    const items: string[] = [];
+    function scan(root: Document | ShadowRoot, prefix: string) {
+      root.querySelectorAll('textarea, [contenteditable=true], input[type=text]').forEach(el => {
+        const e = el as HTMLElement;
+        const rect = e.getBoundingClientRect();
+        items.push(prefix + '<' + el.tagName + '> class="' + (e.className?.toString().substring(0, 80) || '') + '" placeholder="' + ((e as any).placeholder || '') + '" size=' + rect.width.toFixed(0) + 'x' + rect.height.toFixed(0) + ' bottom=' + rect.bottom.toFixed(0));
+      });
+      root.querySelectorAll('*').forEach(child => {
+        if ((child as any).shadowRoot) {
+          items.push(prefix + 'SHADOW: <' + child.tagName + ' class="' + (child.className?.toString().substring(0, 60) || '') + '">');
+          scan((child as any).shadowRoot, prefix + '  ');
+        }
+      });
+    }
+    scan(document, '');
+    sendResponse({ items, total: items.length, url: location.href });
+    return;
+  }
   if (msg.type === 'INSERT_PROMPT') {
     // Async wait for input — critical for SPAs that render input after page load
     waitForInput(15000).then((target) => {

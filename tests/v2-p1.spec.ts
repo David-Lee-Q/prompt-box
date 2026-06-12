@@ -29,9 +29,10 @@ test.describe('v2.0 P1 功能测试', () => {
 
   // ---- Step 9: AI Generate ----
 
-  test('列表页 AI 生成按钮可见', async ({ page }) => {
+  test('列表页 AI 生成按钮已移除', async ({ page }) => {
+    // AI 生成按钮仅在提示词详情页显示，列表页不应出现
     await createSceneAndSelect(page, 'TestScene');
-    await expect(page.getByRole('button', { name: 'AI 生成' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'AI生成' })).not.toBeVisible();
   });
 
   test('编辑器内 AI 生成按钮可见', async ({ page }) => {

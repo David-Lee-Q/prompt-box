@@ -5,11 +5,19 @@ import { generateId } from '@/utils/helpers';
 
 const SETTINGS_KEY = 'ai-prompt-manager-ai-settings';
 
-function loadSettings(): AISettings | null {
+async function loadSettings(): Promise<AISettings | null> {
   try {
-    const data = localStorage.getItem(SETTINGS_KEY);
-    if (!data) return null;
-    const parsed = JSON.parse(data);
+    // chrome.storage.local for extension, fall back to localStorage for web
+    let raw: string | null = null;
+    if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
+      const result = await chrome.storage.local.get(SETTINGS_KEY);
+      raw = (result[SETTINGS_KEY] as string) || null;
+    }
+    if (!raw) {
+      raw = localStorage.getItem(SETTINGS_KEY);
+    }
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
     // Already multi-provider format
     if (parsed.providers && Array.isArray(parsed.providers)) return parsed;
     // Migrate old single-provider format
@@ -48,10 +56,13 @@ function loadSettings(): AISettings | null {
   }
 }
 
-function persistSettings(settings: AISettings) {
+async function persistSettings(settings: AISettings) {
   try {
+    if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
+      await chrome.storage.local.set({ [SETTINGS_KEY]: JSON.stringify(settings) });
+    }
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch { /* quota exceeded */ }
+  } catch { /* storage unavailable — non-critical */ }
 }
 
 function getActiveProvider(settings: AISettings | null): ProviderConfig | null {
@@ -83,8 +94,8 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
   isConfigured: false,
   activeProvider: null,
 
-  loadSettings: () => {
-    const saved = loadSettings();
+  loadSettings: async () => {
+    const saved = await loadSettings();
     const active = getActiveProvider(saved);
     if (active?.apiKey) {
       setCurrentProvider(getOrCreateProvider(active), active.id);
@@ -92,40 +103,40 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     set({ settings: saved, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
 
-  saveSettings: (s: AISettings) => {
-    persistSettings(s);
+  saveSettings: async (s: AISettings) => {
+    await persistSettings(s);
     const active = getActiveProvider(s);
     if (active?.apiKey) {
       const prev = get().activeProvider;
       if (prev && prev.id === active.id) {
-        evictProvider(active.id); // force recreate with new config
+        evictProvider(active.id);
       }
       setCurrentProvider(getOrCreateProvider(active), active.id);
     }
     set({ settings: s, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
 
-  addProvider: (p: ProviderConfig) => {
+  addProvider: async (p: ProviderConfig) => {
     const s = get().settings ?? { providers: [], activeProviderId: null };
     const next: AISettings = {
       providers: [...s.providers, p],
       activeProviderId: s.activeProviderId ?? p.id,
     };
-    persistSettings(next);
+    await persistSettings(next);
     if (!s.activeProviderId && p.apiKey) {
       setCurrentProvider(getOrCreateProvider(p), p.id);
     }
     set({ settings: next, isConfigured: true, activeProvider: p });
   },
 
-  updateProvider: (id: string, partial: Partial<ProviderConfig>) => {
+  updateProvider: async (id: string, partial: Partial<ProviderConfig>) => {
     const s = get().settings;
     if (!s) return;
     const next: AISettings = {
       ...s,
       providers: s.providers.map((p) => (p.id === id ? { ...p, ...partial } : p)),
     };
-    persistSettings(next);
+    await persistSettings(next);
     evictProvider(id);
     const active = getActiveProvider(next);
     if (active?.apiKey) {
@@ -134,7 +145,7 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     set({ settings: next, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
 
-  removeProvider: (id: string) => {
+  removeProvider: async (id: string) => {
     const s = get().settings;
     if (!s) return;
     const providers = s.providers.filter((p) => p.id !== id);
@@ -142,7 +153,7 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
       providers,
       activeProviderId: s.activeProviderId === id ? (providers[0]?.id ?? null) : s.activeProviderId,
     };
-    persistSettings(next);
+    await persistSettings(next);
     evictProvider(id);
     const active = getActiveProvider(next);
     if (active?.apiKey) {
@@ -153,11 +164,11 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     set({ settings: next, activeProvider: active });
   },
 
-  setActiveProvider: (id: string) => {
+  setActiveProvider: async (id: string) => {
     const s = get().settings;
     if (!s) return;
     const next = { ...s, activeProviderId: id };
-    persistSettings(next);
+    await persistSettings(next);
     const active = s.providers.find((p) => p.id === id);
     if (active?.apiKey) {
       setCurrentProvider(getOrCreateProvider(active), active.id);
@@ -165,8 +176,13 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     set({ settings: next, isConfigured: !!(active?.apiKey), activeProvider: active ?? null });
   },
 
-  clearSettings: () => {
-    try { localStorage.removeItem(SETTINGS_KEY); } catch { /* ignore */ }
+  clearSettings: async () => {
+    try {
+      if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
+        await chrome.storage.local.remove(SETTINGS_KEY);
+      }
+      localStorage.removeItem(SETTINGS_KEY);
+    } catch { /* ignore */ }
     set({ settings: null, isConfigured: false, activeProvider: null });
   },
 

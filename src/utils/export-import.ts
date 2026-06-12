@@ -138,7 +138,8 @@ export async function importData(
     };
   }
 
-  const data = validation.data!;
+  // Deep copy to prevent downstream mutations from modifying the original
+  const data: ExportData = JSON.parse(JSON.stringify(validation.data!));
   const conflicts = await detectConflicts(data);
   const conflictIds = new Set(conflicts.map((c) => c.id));
 
