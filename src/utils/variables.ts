@@ -1,6 +1,6 @@
 import type { VariableDef } from '@/types';
 
-const VAR_RE = /\{\{(\w+)(?::(\w+))?(?::([^}]+))?\}\}/g;
+const VAR_RE = /\{\{([\p{L}\p{N}_]+)(?::([\p{L}\p{N}_]+))?(?::([^}]+))?\}\}/gu;
 
 export function extractVariables(content: string): VariableDef[] {
   const seen = new Set<string>();

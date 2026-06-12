@@ -3,14 +3,27 @@ import { copyToClipboard } from '@/utils/clipboard';
 
 interface InsertResult { success: boolean; message: string; platform?: string; code?: 'INPUT_NOT_FOUND' | 'INPUT_NOT_EMPTY' | 'MULTIPLE_TABS'; }
 
-const DOMAIN_MAP: Record<string, string> = {
-  chatgpt: 'chatgpt.com',
-  deepseek: 'chat.deepseek.com',
+interface PlatformInfo {
+  domain: string;
+  launchUrl: string;
+}
+
+const PLATFORM_INFO: Record<string, PlatformInfo> = {
+  deepseek: { domain: 'chat.deepseek.com', launchUrl: 'https://chat.deepseek.com' },
+  doubao: { domain: 'www.doubao.com', launchUrl: 'https://www.doubao.com/chat/' },
+  kimi: { domain: 'www.kimi.com', launchUrl: 'https://www.kimi.com/' },
+  qwen: { domain: 'www.qianwen.com', launchUrl: 'https://www.qianwen.com/chat' },
+  chatgpt: { domain: 'chatgpt.com', launchUrl: 'https://chatgpt.com' },
+  gemini: { domain: 'gemini.google.com', launchUrl: 'https://gemini.google.com' },
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
-  chatgpt: 'ChatGPT',
   deepseek: 'DeepSeek',
+  doubao: '豆包',
+  kimi: 'Kimi',
+  qwen: '千问',
+  chatgpt: 'ChatGPT',
+  gemini: 'Gemini',
 };
 
 async function sendMessageWithRetry(
@@ -23,7 +36,7 @@ async function sendMessageWithRetry(
       });
       if (result?.success) return result;
       if (result?.error === 'INPUT_NOT_FOUND') {
-        return { success: false, message: '无法定位输入框，请确认页面已完全加载', code: 'INPUT_NOT_FOUND' };
+        return { success: false, message: `无法定位输入框（${result?.detail || '页面可能尚未加载完'}）`, code: 'INPUT_NOT_FOUND' };
       }
       if (result?.error === 'INPUT_NOT_EMPTY') {
         return { success: false, message: '输入框已有内容', code: 'INPUT_NOT_EMPTY' };
@@ -38,8 +51,11 @@ async function sendMessageWithRetry(
 }
 
 async function selectTargetTab(
-  domain: string
+  platform: string
 ): Promise<{ tabId: number; isNew: boolean } | null> {
+  const info = PLATFORM_INFO[platform];
+  if (!info) return null;
+  const domain = info.domain;
   const tabs = await chrome.tabs.query({ url: `*://${domain}/*` });
 
   if (tabs.length === 1 && tabs[0]?.id != null) {
@@ -48,29 +64,39 @@ async function selectTargetTab(
   }
 
   if (tabs.length > 1) {
-    return null; // caller handles multi-tab UI
+    return null;
   }
 
-  const newTab = await chrome.tabs.create({
-    url: `https://${domain}`,
-    active: true,
-  });
-  if (!newTab.id) return null;
-  await new Promise((r) => setTimeout(r, 2000));
-  return { tabId: newTab.id, isNew: true };
+  try {
+    const newTab = await chrome.tabs.create({
+      url: info.launchUrl,
+      active: true,
+    });
+    if (!newTab.id) return null;
+    await new Promise((r) => setTimeout(r, 3000));
+    return { tabId: newTab.id, isNew: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[insertService] Failed to open tab for ${platform}: ${msg}`);
+    return null;
+  }
 }
 
 export async function insertPrompt(
   platform: string, text: string, preferredTabId?: number, force = false
 ): Promise<InsertResult> {
-  const domain = DOMAIN_MAP[platform];
-  if (!domain) return { success: false, message: `不支持的平台: ${platform}` };
+  const info = PLATFORM_INFO[platform];
+  if (!info) return { success: false, message: `不支持的平台: ${platform}` };
 
   let tabId = preferredTabId;
   if (!tabId) {
-    const target = await selectTargetTab(domain);
+    const target = await selectTargetTab(platform);
     if (!target) {
-      return { success: false, message: '多个标签页', code: 'MULTIPLE_TABS', platform };
+      const tabs = await getPlatformTabs(platform);
+      if (tabs.length > 1) {
+        return { success: false, message: '多个标签页', code: 'MULTIPLE_TABS', platform };
+      }
+      return { success: false, message: `无法打开 ${PLATFORM_LABELS[platform] || platform} 页面` };
     }
     tabId = target.tabId;
   }
@@ -79,14 +105,14 @@ export async function insertPrompt(
 }
 
 export async function getPlatformTabs(platform: string) {
-  const domain = DOMAIN_MAP[platform];
-  if (!domain) return [];
-  return chrome.tabs.query({ url: `*://${domain}/*` });
+  const info = PLATFORM_INFO[platform];
+  if (!info) return [];
+  return chrome.tabs.query({ url: `*://${info.domain}/*` });
 }
 
 export function getAvailablePlatforms(): string[] {
   if (!isExtension()) return [];
-  return Object.keys(DOMAIN_MAP);
+  return Object.keys(PLATFORM_INFO);
 }
 
 export function getPlatformLabel(platform: string): string {

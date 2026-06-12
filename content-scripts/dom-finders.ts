@@ -20,26 +20,6 @@ function resolveSelectors(
   return null;
 }
 
-// ── 国外平台 ──
-
-function findChatGPTInput(): InputTarget | null {
-  return resolveSelectors([
-    '#prompt-textarea',
-    '[data-testid="prompt-textarea"]',
-    'form [contenteditable="true"]',
-  ], 'contenteditable');
-}
-
-// ── 国内平台 ──
-
-function findDeepSeekInput(): InputTarget | null {
-  return resolveSelectors([
-    '#chat-input',
-    'textarea[placeholder*="Send a message"]',
-  ], 'textarea') || findVisibleTextarea('textarea');
-}
-
-// Size-filtered textarea fallback to avoid picking settings/search boxes
 function findVisibleTextarea(selector: string): InputTarget | null {
   const textareas = document.querySelectorAll(selector);
   for (const el of textareas) {
@@ -51,17 +31,95 @@ function findVisibleTextarea(selector: string): InputTarget | null {
   return null;
 }
 
-// ── 注册表 ──
+// ── Platform finders (DeepSeek → 豆包 → Kimi → 千问 → ChatGPT → Gemini) ──
+
+function findDeepSeekInput(): InputTarget | null {
+  return resolveSelectors([
+    '#chat-input',
+    'textarea[placeholder*="Send a message"]',
+  ], 'textarea') || findVisibleTextarea('textarea');
+}
+
+function findInShadowRoots(root: Document | ShadowRoot): InputTarget | null {
+  // Search light DOM first
+  const light = root.querySelectorAll('textarea');
+  for (const el of light) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 100 && rect.height > 30) {
+      return { element: el as HTMLElement, type: 'textarea' };
+    }
+  }
+  // Recurse into shadow roots
+  for (const el of root.querySelectorAll('*')) {
+    if (el.shadowRoot) {
+      const found = findInShadowRoots(el.shadowRoot);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function findDoubaoInput(): InputTarget | null {
+  // 豆包使用 Semi Design UI + DOUBAO-AI-CSUI Shadow DOM
+  const direct = document.querySelector('textarea.semi-input-textarea')
+    || document.querySelector('[data-testid="chat_input_input"]');
+  if (direct) {
+    return { element: direct as HTMLElement, type: 'textarea' };
+  }
+  return findInShadowRoots(document);
+}
+
+function findKimiInput(): InputTarget | null {
+  return resolveSelectors([
+    'div[contenteditable="true"]',
+    'textarea',
+  ], 'contenteditable');
+}
+
+function findQwenInput(): InputTarget | null {
+  return resolveSelectors([
+    'div[contenteditable="true"]',
+    'textarea',
+  ], 'contenteditable');
+}
+
+function findChatGPTInput(): InputTarget | null {
+  return resolveSelectors([
+    '#prompt-textarea',
+    '[data-testid="prompt-textarea"]',
+    'form [contenteditable="true"]',
+  ], 'contenteditable');
+}
+
+function findGeminiInput(): InputTarget | null {
+  return resolveSelectors([
+    'rich-textarea [contenteditable="true"]',
+    'div[role="textbox"][contenteditable]',
+    '[contenteditable="true"]',
+  ], 'contenteditable');
+}
+
+// ── Registry ──
 
 const finders: Record<string, () => InputTarget | null> = {
-  'chatgpt.com': findChatGPTInput,
   'chat.deepseek.com': findDeepSeekInput,
+  'doubao.com': findDoubaoInput,
+  'kimi.com': findKimiInput,             // covers kimi.com & kimi.moonshot.cn
+  'kimi.moonshot.cn': findKimiInput,
+  'qianwen.com': findQwenInput,
+  'tongyi.aliyun.com': findQwenInput,
+  'chatgpt.com': findChatGPTInput,
+  'gemini.google.com': findGeminiInput,
 };
 
 export function detectPlatform(): string | null {
   const host = window.location.hostname;
-  if (host.includes('chatgpt.com')) return 'ChatGPT';
   if (host.includes('deepseek.com')) return 'DeepSeek';
+  if (host.includes('doubao.com')) return '豆包';
+  if (host.includes('kimi.com') || host.includes('kimi.moonshot.cn')) return 'Kimi';
+  if (host.includes('qianwen.com') || host.includes('tongyi.aliyun.com')) return '千问';
+  if (host.includes('chatgpt.com')) return 'ChatGPT';
+  if (host.includes('gemini')) return 'Gemini';
   return null;
 }
 

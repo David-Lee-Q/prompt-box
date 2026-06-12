@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { FileText, Plus, LayoutGrid, List, Star, Sparkles, Tag } from 'lucide-react';
+import { FileText, Plus, LayoutGrid, List, Star, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import PromptCard from './PromptCard';
@@ -12,13 +12,12 @@ interface PromptListProps {
   onNewPrompt: () => void;
   onPromptClick: (id: string) => void;
   onToggleStar: (id: string, isStarred: boolean) => void;
-  onGenerate?: () => void;
 }
 
 type SortKey = 'name' | 'updatedAt' | 'version';
 type SortDir = 'asc' | 'desc';
 
-export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar, onGenerate }: PromptListProps) {
+export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }: PromptListProps) {
   const { prompts, activeSceneId, scenes, isLoading, isStarredFilter, viewMode, setViewMode } = useAppStore();
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -116,12 +115,6 @@ export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar, o
       </div>
       <div className="flex items-center gap-2 mb-2">
         <FilterBar />
-        {onGenerate && (
-          <Button variant="outline" size="sm" onClick={onGenerate} className="flex-shrink-0">
-            <Sparkles className="h-3.5 w-3.5 mr-1" />
-            AI 生成
-          </Button>
-        )}
       </div>
       {prompts.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-60 text-center">

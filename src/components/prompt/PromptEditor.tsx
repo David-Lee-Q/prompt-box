@@ -267,7 +267,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
               title={isConfigured ? 'AI 生成' : '需要先配置 API Key'}
             >
               <Sparkles className="h-3.5 w-3.5 mr-1" />
-              生成
+              AI生成
             </Button>
             <Button size="sm" onClick={handleSave} disabled={isSaving}>
               <Save className="h-4 w-4 mr-1" />

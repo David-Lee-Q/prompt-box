@@ -12,11 +12,18 @@
   "permissions": ["tabs"],
   "host_permissions": [
     "https://api.anthropic.com/*",
-    "https://api.openai.com/*"
+    "https://api.openai.com/*",
+    "https://api.moonshot.cn/*"
   ],
   "optional_host_permissions": [
+    "https://chat.deepseek.com/*",
+    "https://*.doubao.com/*",
+    "https://www.kimi.com/*",
+    "https://kimi.moonshot.cn/*",
+    "https://www.qianwen.com/*",
+    "https://tongyi.aliyun.com/*",
     "https://chatgpt.com/*",
-    "https://chat.deepseek.com/*"
+    "https://gemini.google.com/*"
   ],
   "background": {
     "service_worker": "sw.js"
@@ -34,8 +41,14 @@
   "content_scripts": [
     {
       "matches": [
+        "https://chat.deepseek.com/*",
+        "https://*.doubao.com/*",
+        "https://www.kimi.com/*",
+        "https://kimi.moonshot.cn/*",
+        "https://www.qianwen.com/*",
+        "https://tongyi.aliyun.com/*",
         "https://chatgpt.com/*",
-        "https://chat.deepseek.com/*"
+        "https://gemini.google.com/*"
       ],
       "js": ["content-scripts/insert.js"],
       "run_at": "document_idle"

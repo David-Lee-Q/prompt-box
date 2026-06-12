@@ -78,7 +78,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'INSERT_PROMPT') {
     const target = findInputField();
     if (!target) {
-      sendResponse({ success: false, error: 'INPUT_NOT_FOUND' });
+      // Debug: report what textareas/contenteditables exist on the page
+      const taCount = document.querySelectorAll('textarea').length;
+      const ceCount = document.querySelectorAll('[contenteditable="true"]').length;
+      sendResponse({
+        success: false,
+        error: 'INPUT_NOT_FOUND',
+        detail: `Found ${taCount} textarea(s), ${ceCount} contenteditable(s)`,
+      });
       return;
     }
     if (isInputNonEmpty(target) && !msg.force) {

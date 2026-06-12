@@ -3,10 +3,15 @@
 // ============================================================
 
 const THINK_BLOCK_RE: RegExp[] = [
-  // DeepSeek R1 format (backslash-prefixed tags)
+  // DeepSeek R1: <\think>...</\think>
   /<\\think>[\s\S]*?<\\\/think>/gi,
-  // Standard XML format (attribute-tolerant for opening tags)
+  // DeepSeek R1 alt: <\think>...<\think> (same tag close)
+  /<\\think>[\s\S]*?<\\think>/gi,
+  // Backslash-open + normal-close: <\think>...</think>
+  /<\\think>[\s\S]*?<\/think>/gi,
+  // Standard XML: <thinking...>...</thinking>
   /<thinking\b[^>]*>[\s\S]*?<\/thinking>/gi,
+  // Standard XML: <think...>...</think>
   /<think\b[^>]*>[\s\S]*?<\/think>/gi,
   // Bracket variants
   /\[THINKING\][\s\S]*?\[\/THINKING\]/gi,

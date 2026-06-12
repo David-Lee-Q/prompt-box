@@ -12,7 +12,6 @@ import { createScene, updateScene, deleteScene } from '@/services/sceneService';
 import { toggleStarPrompt } from '@/services/promptService';
 import { exportAllData, exportScene } from '@/utils/export-import';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
-import GenerateDialog from '@/components/ai/GenerateDialog';
 import type { Scene } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
@@ -28,7 +27,6 @@ export default function HomePage() {
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
   const [deletingScene, setDeletingScene] = useState<Scene | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showGenerate, setShowGenerate] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -158,7 +156,6 @@ export default function HomePage() {
             onNewPrompt={handleNewPrompt}
             onPromptClick={handlePromptClick}
             onToggleStar={handleToggleStar}
-            onGenerate={() => setShowGenerate(true)}
           />
         </MainContent>
       </div>
@@ -169,19 +166,6 @@ export default function HomePage() {
         onOpenChange={setSceneFormOpen}
         onSubmit={handleSceneSubmit}
         initialData={editingScene}
-      />
-
-      <GenerateDialog
-        open={showGenerate}
-        onOpenChange={setShowGenerate}
-        onAdopt={() => {
-          const sceneId = activeSceneId;
-          if (!sceneId) {
-            toast({ title: '请先选择场景', variant: 'destructive' });
-            return;
-          }
-          navigate(`/prompts/new?sceneId=${sceneId}`);
-        }}
       />
 
       <StatusBar />

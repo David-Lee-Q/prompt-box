@@ -114,7 +114,7 @@ export default function InsertDialog({ open, onOpenChange, content, title }: Ins
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-5 w-5" />
@@ -123,48 +123,48 @@ export default function InsertDialog({ open, onOpenChange, content, title }: Ins
           <DialogDescription>{title}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Platform selector */}
-          {platforms.length > 1 && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">目标平台</Label>
-              <div className="relative">
-                <select
-                  value={platform}
-                  onChange={(e) => setPlatform(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  {platforms.map((p) => (
-                    <option key={p} value={p}>{getPlatformLabel(p)}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              </div>
-            </div>
-          )}
-
-          {/* Variable inputs */}
-          {variables.length > 0 && (
-            <div className="space-y-3">
-              <Label className="text-xs">变量填充</Label>
-              <div className="grid gap-2 max-h-40 overflow-y-auto">
-                {variables.map((v) => (
-                  <VariableInput key={v.name} v={v} onChange={handleValueChange} />
+        {/* Platform selector — fixed */}
+        {platforms.length > 1 && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">目标平台</Label>
+            <div className="relative">
+              <select
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {platforms.map((p) => (
+                  <option key={p} value={p}>{getPlatformLabel(p)}</option>
                 ))}
-              </div>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Preview */}
+        {/* Variable inputs — fixed, with own scroll if many */}
+        {variables.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-xs">变量填充</Label>
+            <div className="grid gap-2 max-h-32 overflow-y-auto">
+              {variables.map((v) => (
+                <VariableInput key={v.name} v={v} onChange={handleValueChange} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Preview — scrollable */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <VariablePreview rendered={resolved} />
-
-          {/* Overwrite warning */}
-          {needsForce && (
-            <p className="text-xs text-destructive">
-              目标平台输入框已有内容，是否覆盖？
-            </p>
-          )}
         </div>
+
+        {/* Overwrite warning */}
+        {needsForce && (
+          <p className="text-xs text-destructive shrink-0">
+            目标平台输入框已有内容，是否覆盖？
+          </p>
+        )}
 
         <div className="flex justify-end gap-2 pt-2 border-t">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
