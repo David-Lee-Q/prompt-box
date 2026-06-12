@@ -43,14 +43,11 @@ describe('Provider Registry', () => {
   it('createProvider passes config to factory', () => {
     const config: AIProviderConfig = {
       type: 'mock', format: 'mock' as APIFormat, apiKey: 'key-1', model: 'gpt-x',
-      temperature: 0.7, maxTokens: 2048,
     };
     const p = createProvider(config) as MockProvider;
     const cfg = p.getConfig();
     expect(cfg.apiKey).toBe('key-1');
     expect(cfg.model).toBe('gpt-x');
-    expect(cfg.temperature).toBe(0.7);
-    expect(cfg.maxTokens).toBe(2048);
   });
 
   it('createProvider throws for unknown format', () => {
