@@ -32,3 +32,22 @@ chrome.windows.onRemoved.addListener(function(winId) {
     promptWindowId = null;
   }
 });
+
+// ── Content script readiness tracking ──
+const readyTabs = new Map();
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'CONTENT_SCRIPT_READY' && sender.tab?.id) {
+    readyTabs.set(sender.tab.id, { platform: msg.platform, time: Date.now() });
+  }
+  if (msg.type === 'QUERY_READY_TABS') {
+    sendResponse(Object.fromEntries(readyTabs));
+  }
+  if (msg.type === 'IS_TAB_READY') {
+    sendResponse(readyTabs.has(msg.tabId));
+  }
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  readyTabs.delete(tabId);
+});

@@ -33,7 +33,10 @@ function insertIntoContentEditable(el: HTMLElement, text: string): boolean {
   if (insertViaProseMirror(el, text)) return true;
   el.focus();
   el.textContent = text;
-  el.dispatchEvent(new Event('input', { bubbles: true }));
+  // Use InputEvent for React 17+ synthetic event compatibility
+  el.dispatchEvent(new InputEvent('input', {
+    bubbles: true, cancelable: true, inputType: 'insertText', data: text,
+  }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
   const sel = window.getSelection();
   if (sel) { sel.selectAllChildren(el); sel.collapseToEnd(); }
@@ -46,7 +49,9 @@ function insertIntoTextarea(el: HTMLTextAreaElement, text: string): void {
     HTMLTextAreaElement.prototype, 'value'
   )?.set;
   if (nativeSetter) { nativeSetter.call(el, text); } else { el.value = text; }
-  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new InputEvent('input', {
+    bubbles: true, cancelable: true, inputType: 'insertText', data: text,
+  }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
@@ -66,41 +71,82 @@ function insertText(target: InputTarget, text: string): boolean {
 // ── Overwrite check ──
 
 function isInputNonEmpty(target: InputTarget): boolean {
-  // Only check textarea (reliable value property).
-  // Contenteditable frameworks use various placeholder implementations
-  // (pseudo-elements, DOM text nodes, attributes) — not reliably checkable.
-  if (target.type === 'contenteditable') return false;
+  if (target.type === 'contenteditable') {
+    // Some platforms have placeholder text in contenteditable — check innerText
+    const text = (target.element as HTMLElement).innerText?.trim() || '';
+    return text.length > 10;
+  }
   return !!(target.element as HTMLTextAreaElement).value?.trim();
+}
+
+// ── Wait for input to appear in SPA (MutationObserver) ──
+
+function waitForInput(timeoutMs = 15000): Promise<InputTarget | null> {
+  return new Promise((resolve) => {
+    if (!document.body) { resolve(null); return; }
+    const immediate = findInputField();
+    if (immediate) { resolve(immediate); return; }
+
+    let resolved = false;
+    const finish = (result: InputTarget | null) => {
+      if (resolved) return;
+      resolved = true;
+      observer.disconnect();
+      clearTimeout(timer);
+      resolve(result);
+    };
+
+    const observer = new MutationObserver(() => {
+      const found = findInputField();
+      if (found) finish(found);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['contenteditable', 'class', 'style', 'placeholder'],
+    });
+
+    const timer = setTimeout(() => {
+      // Last try before giving up
+      finish(findInputField());
+    }, timeoutMs);
+  });
 }
 
 // ── Message handler ──
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'INSERT_PROMPT') {
-    const target = findInputField();
-    if (!target) {
-      // Debug: report what textareas/contenteditables exist on the page
-      const taCount = document.querySelectorAll('textarea').length;
-      const ceCount = document.querySelectorAll('[contenteditable="true"]').length;
-      sendResponse({
-        success: false,
-        error: 'INPUT_NOT_FOUND',
-        detail: `Found ${taCount} textarea(s), ${ceCount} contenteditable(s)`,
-      });
-      return;
-    }
-    if (isInputNonEmpty(target) && !msg.force) {
-      const existingText = target.type === 'contenteditable'
-        ? (target.element as HTMLElement).innerText
-        : (target.element as HTMLTextAreaElement).value;
-      sendResponse({ success: false, error: 'INPUT_NOT_EMPTY', detail: `Existing content: "${existingText?.slice(0, 50)}"` });
-      return;
-    }
-    const ok = insertText(target, msg.text);
-    sendResponse({ success: ok });
-    return;
+    // Async wait for input — critical for SPAs that render input after page load
+    waitForInput(15000).then((target) => {
+      if (!target) {
+        const taCount = document.querySelectorAll('textarea').length;
+        const ceCount = document.querySelectorAll('[contenteditable="true"]').length;
+        sendResponse({
+          success: false,
+          error: 'INPUT_NOT_FOUND',
+          detail: `Waited 15s: ${taCount} textarea(s), ${ceCount} contenteditable(s)`,
+        });
+        return;
+      }
+      if (isInputNonEmpty(target) && !msg.force) {
+        const existingText = target.type === 'contenteditable'
+          ? (target.element as HTMLElement).innerText
+          : (target.element as HTMLTextAreaElement).value;
+        sendResponse({
+          success: false, error: 'INPUT_NOT_EMPTY',
+          detail: `Existing: "${existingText?.slice(0, 50)}"`,
+        });
+        return;
+      }
+      const ok = insertText(target, msg.text);
+      sendResponse({ success: ok });
+    });
+    return true; // keep message channel open for async response
   }
-  return false; // unhandled message type
+  return false;
 });
 
 // ── Ready signal ──
