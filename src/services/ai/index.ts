@@ -89,7 +89,7 @@ export function getAIProvider(
 function requireProvider(): AIProvider {
   const provider = getCurrentProvider();
   if (!provider) throw new AIError('AI 未配置，请在设置中配置 API Key', 'auth');
-  if (!provider.getConfig().apiKey) throw new AIError('API Key 未设置', 'auth');
+  if (!provider.getConfig().apiKey.trim()) throw new AIError('API Key 未设置', 'auth');
   return provider;
 }
 

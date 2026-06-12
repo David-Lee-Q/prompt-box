@@ -30,12 +30,19 @@ export default function VersionList({
 }: VersionListProps) {
   const [versions, setVersions] = useState<Version[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadVersions = async () => {
     setLoading(true);
-    const data = await getVersionsByPrompt(promptId);
-    setVersions(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await getVersionsByPrompt(promptId);
+      setVersions(data);
+    } catch {
+      setError('加载失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -55,7 +62,12 @@ export default function VersionList({
       </div>
 
       <ScrollArea className="flex-1">
-        {loading ? (
+        {error ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-destructive mb-2">{error}</p>
+            <Button variant="outline" size="sm" onClick={loadVersions}>重试</Button>
+          </div>
+        ) : loading ? (
           <p className="text-sm text-muted-foreground text-center py-8">加载中...</p>
         ) : versions.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">暂无版本记录</p>

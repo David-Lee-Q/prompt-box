@@ -72,12 +72,13 @@ export default function AISettings() {
       toast({ title: '请输入提供商名称', variant: 'destructive' });
       return;
     }
+    const trimmed = { ...form, apiKey: form.apiKey.trim(), baseUrl: form.baseUrl.trim() };
     if (editingId) {
-      updateProvider(editingId, form);
+      updateProvider(editingId, trimmed);
       toast({ title: '已更新', variant: 'success' });
       setEditingId(null);
     } else {
-      addProvider({ id: generateId(), ...form });
+      addProvider({ id: generateId(), ...trimmed });
       toast({ title: '已添加', variant: 'success' });
       setAdding(false);
     }

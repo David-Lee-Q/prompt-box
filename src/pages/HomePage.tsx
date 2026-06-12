@@ -50,7 +50,8 @@ export default function HomePage() {
 
   const confirmDeleteScene = async () => {
     if (!deletingScene) return;
-    const hasPrompts = useAppStore.getState().prompts.length > 0;
+    const scenePrompts = useAppStore.getState().prompts.filter(p => p.sceneId === deletingScene.id);
+    const hasPrompts = scenePrompts.length > 0;
     if (hasPrompts && !window.confirm(`场景「${deletingScene.name}」下有关联的提示词，删除场景将同时删除其下的所有提示词，确定继续？`)) {
       setDeletingScene(null);
       return;
