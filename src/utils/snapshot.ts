@@ -12,14 +12,14 @@ interface SnapshotEntry {
 }
 
 export async function createSnapshot(): Promise<void> {
-  try {
-    // Lock to prevent concurrent snapshot creation across tabs
-    const LOCK_KEY = 'ai-prompt-manager-snapshot-lock';
-    const now = Date.now();
-    const existingLock = localStorage.getItem(LOCK_KEY);
-    if (existingLock && now - Number(existingLock) < 5000) return; // another tab is snapshotting
-    localStorage.setItem(LOCK_KEY, String(now));
+  // Lock to prevent concurrent snapshot creation across tabs
+  const LOCK_KEY = 'ai-prompt-manager-snapshot-lock';
+  const now = Date.now();
+  const existingLock = localStorage.getItem(LOCK_KEY);
+  if (existingLock && now - Number(existingLock) < 5000) return; // another tab is snapshotting
+  localStorage.setItem(LOCK_KEY, String(now));
 
+  try {
     const [scenes, prompts, versions] = await Promise.all([
       db.scenes.toArray(),
       db.prompts.toArray(),

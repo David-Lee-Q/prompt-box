@@ -1,9 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Trigger self-registration of real providers
 import './openai';
 import './anthropic';
-import { getOrCreateProvider, setCurrentProvider, getCurrentProvider, evictProvider, initAI, getAIProvider } from './index';
+import { getOrCreateProvider, getCurrentProvider, evictProvider, initAI, getAIProvider } from './index';
 import type { ProviderConfig } from '@/types/ai';
+
+// Mock settingsStore to provide active provider for getCurrentProvider()
+const mockGetState = vi.fn(() => ({ activeProvider: null }));
+vi.mock('@/store/settingsStore', () => ({
+  default: { getState: () => mockGetState() },
+}));
+
+beforeEach(() => {
+  mockGetState.mockReturnValue({ activeProvider: null });
+});
 
 const makeConfig = (overrides?: Partial<ProviderConfig>): ProviderConfig => ({
   id: 'test-1',
@@ -32,29 +42,27 @@ describe('Provider Pool', () => {
     expect(a).not.toBe(b); // new instance after eviction
   });
 
-  it('evictProvider clears current if evicted', () => {
-    const config = makeConfig({ id: 'active-evict' });
+  it('evictProvider removes from pool (store-based getCurrentProvider)', () => {
+    const config = makeConfig({ id: 'to-evict2' });
     const p = getOrCreateProvider(config);
-    setCurrentProvider(p, 'active-evict');
-    expect(getCurrentProvider()).toBe(p);
+    mockGetState.mockReturnValue({ activeProvider: config });
+    expect(getCurrentProvider()).toBe(p); // from pool cache
 
-    evictProvider('active-evict');
-    expect(getCurrentProvider()).toBeNull();
+    evictProvider('to-evict2');
+    const q = getOrCreateProvider(config);
+    expect(q).not.toBe(p); // new instance after eviction
   });
 
-  it('setCurrentProvider / getCurrentProvider roundtrip', () => {
-    const config = makeConfig({ id: 'current-test' });
-    const p = getOrCreateProvider(config);
-    setCurrentProvider(p, 'current-test');
-    expect(getCurrentProvider()).toBe(p);
+  it('getCurrentProvider returns null when store has no active', () => {
+    mockGetState.mockReturnValue({ activeProvider: null });
+    expect(getCurrentProvider()).toBeNull();
   });
 });
 
 describe('Backward compat: initAI', () => {
-  it('creates and sets current provider', () => {
+  it('creates provider with correct format', () => {
     const p = initAI({ format: 'openai', apiKey: 'sk-x', model: 'gpt-4o' });
     expect(p).toBeDefined();
-    expect(getCurrentProvider()).toBe(p);
     expect(p.getConfig().format).toBe('openai');
   });
 
@@ -62,7 +70,6 @@ describe('Backward compat: initAI', () => {
     const a = initAI({ format: 'openai', apiKey: 'sk-a', model: 'gpt-4o' });
     const b = initAI({ format: 'anthropic', apiKey: 'sk-b', model: 'claude' });
     expect(a).not.toBe(b);
-    expect(getCurrentProvider()).toBe(b);
     expect(b.getConfig().format).toBe('anthropic');
   });
 });
