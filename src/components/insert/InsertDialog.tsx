@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Send, ChevronDown } from 'lucide-react';
 import {
   Dialog,
@@ -63,6 +63,14 @@ export default function InsertDialog({ open, onOpenChange, content, title }: Ins
   const [isInserting, setIsInserting] = useState(false);
   const [needsForce, setNeedsForce] = useState(false);
 
+  // Reset state when dialog opens with new prompt
+  useEffect(() => {
+    if (open) {
+      setValues({});
+      setNeedsForce(false);
+    }
+  }, [open, content]);
+
   const defs = useMemo(() => extractVariables(content), [content]);
   const variables: VariableInfo[] = useMemo(
     () => defs.map((d) => ({ ...d, value: values[d.name] ?? '' })),
@@ -82,9 +90,9 @@ export default function InsertDialog({ open, onOpenChange, content, title }: Ins
     if (result.success) {
       toast({ title: '插入成功', description: `已填入 ${getPlatformLabel(platform)}` });
       onOpenChange(false);
-    } else if (result.message === 'INPUT_NOT_EMPTY') {
+    } else if (result.code === 'INPUT_NOT_EMPTY') {
       setNeedsForce(true);
-    } else if (result.message === 'MULTIPLE_TABS') {
+    } else if (result.code === 'MULTIPLE_TABS') {
       // Show tab list for selection
       const tabs = await getPlatformTabs(platform);
       if (tabs.length > 0) {

@@ -87,7 +87,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     }
     const ok = insertText(target, msg.text);
     sendResponse({ success: ok });
+    return;
   }
+  return false; // unhandled message type
 });
 
 // ── Ready signal ──

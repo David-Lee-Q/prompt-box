@@ -118,7 +118,7 @@ export default function AISettings() {
       if (result.ok) {
         toast({ title: '连接成功', description: `延迟 ${result.latency}ms` });
       } else {
-        throw new Error('连接失败，请检查 API Key 和网络连接');
+        throw new Error(result.error || '连接失败，请检查 API Key 和网络连接');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '连接失败';

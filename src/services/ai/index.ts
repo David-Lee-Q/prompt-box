@@ -1,3 +1,7 @@
+// Trigger self-registration of provider implementations
+import './openai';
+import './anthropic';
+
 import type { AIProvider } from './provider';
 import type { AIOptimizeRequest, AIStreamChunk, APIFormat, ProviderConfig } from '@/types/ai';
 import { createProvider } from './registry';

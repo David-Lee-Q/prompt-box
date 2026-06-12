@@ -7,7 +7,7 @@ import { registerProvider } from './registry';
 import { AIError, type AIErrorCode } from './errors';
 import { stripThinkBlocks } from './thinkFilter';
 
-function mapOpenAIError(err: unknown): AIError {
+export function mapOpenAIError(err: unknown): AIError {
   if (err instanceof AIError) return err;
   if (err instanceof DOMException && err.name === 'AbortError') {
     return new AIError('请求已取消', 'timeout');
@@ -107,13 +107,20 @@ export class OpenAIProvider implements AIProvider {
     }
   }
 
-  async testConnection(signal?: AbortSignal): Promise<{ ok: boolean; latency: number }> {
+  async testConnection(signal?: AbortSignal): Promise<{ ok: boolean; latency: number; error?: string }> {
+    // Use minimal chat completion (POST) rather than models.list (GET),
+    // because the Vite dev proxy only forwards POST requests.
     const start = Date.now();
     try {
-      await this.client.models.list({ signal });
+      await this.client.chat.completions.create({
+        model: this.config.model,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'Hi' }],
+      }, signal ? { signal } : undefined);
       return { ok: true, latency: Date.now() - start };
-    } catch {
-      return { ok: false, latency: Date.now() - start };
+    } catch (err) {
+      const mapped = mapOpenAIError(err);
+      return { ok: false, latency: Date.now() - start, error: mapped.message };
     }
   }
 

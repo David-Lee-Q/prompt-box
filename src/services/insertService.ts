@@ -1,7 +1,7 @@
 import { isExtension } from '@/utils/env';
 import { copyToClipboard } from '@/utils/clipboard';
 
-interface InsertResult { success: boolean; message: string; platform?: string; }
+interface InsertResult { success: boolean; message: string; platform?: string; code?: 'INPUT_NOT_FOUND' | 'INPUT_NOT_EMPTY' | 'MULTIPLE_TABS'; }
 
 const DOMAIN_MAP: Record<string, string> = {
   chatgpt: 'chatgpt.com',
@@ -14,7 +14,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 async function sendMessageWithRetry(
-  tabId: number, text: string, force: boolean, maxRetries = 10, baseDelay = 300
+  tabId: number, text: string, force: boolean, maxRetries = 5, baseDelay = 400
 ): Promise<InsertResult> {
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -23,10 +23,10 @@ async function sendMessageWithRetry(
       });
       if (result?.success) return result;
       if (result?.error === 'INPUT_NOT_FOUND') {
-        return { success: false, message: '无法定位输入框，请确认页面已完全加载' };
+        return { success: false, message: '无法定位输入框，请确认页面已完全加载', code: 'INPUT_NOT_FOUND' };
       }
       if (result?.error === 'INPUT_NOT_EMPTY') {
-        return { success: false, message: 'INPUT_NOT_EMPTY' };
+        return { success: false, message: '输入框已有内容', code: 'INPUT_NOT_EMPTY' };
       }
     } catch {
       if (i < maxRetries - 1) {
@@ -70,7 +70,7 @@ export async function insertPrompt(
   if (!tabId) {
     const target = await selectTargetTab(domain);
     if (!target) {
-      return { success: false, message: 'MULTIPLE_TABS', platform };
+      return { success: false, message: '多个标签页', code: 'MULTIPLE_TABS', platform };
     }
     tabId = target.tabId;
   }

@@ -17,7 +17,7 @@ class MockProvider implements AIProvider {
     return 'ok';
   }
 
-  async testConnection(): Promise<{ ok: boolean; latency: number }> {
+  async testConnection(): Promise<{ ok: boolean; latency: number; error?: string }> {
     return { ok: true, latency: 10 };
   }
 

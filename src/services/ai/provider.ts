@@ -13,7 +13,7 @@ export interface AIProvider {
     signal?: AbortSignal
   ): Promise<string>;
 
-  testConnection(signal?: AbortSignal): Promise<{ ok: boolean; latency: number }>;
+  testConnection(signal?: AbortSignal): Promise<{ ok: boolean; latency: number; error?: string }>;
 
   getConfig(): AIProviderConfig;
 }

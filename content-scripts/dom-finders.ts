@@ -1,4 +1,4 @@
-interface InputTarget {
+export interface InputTarget {
   element: HTMLElement;
   type: 'contenteditable' | 'textarea' | 'input';
 }
@@ -36,8 +36,19 @@ function findDeepSeekInput(): InputTarget | null {
   return resolveSelectors([
     '#chat-input',
     'textarea[placeholder*="Send a message"]',
-    'textarea',
-  ], 'textarea');
+  ], 'textarea') || findVisibleTextarea('textarea');
+}
+
+// Size-filtered textarea fallback to avoid picking settings/search boxes
+function findVisibleTextarea(selector: string): InputTarget | null {
+  const textareas = document.querySelectorAll(selector);
+  for (const el of textareas) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 200 && rect.height > 40 && rect.bottom < window.innerHeight + 200) {
+      return { element: el as HTMLElement, type: 'textarea' };
+    }
+  }
+  return null;
 }
 
 // ── 注册表 ──
