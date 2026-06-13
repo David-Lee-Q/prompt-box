@@ -52,19 +52,30 @@ export async function savePrompt(
 
       const updatedContent = prompt.content ?? existingPrompt.content;
       const variables = extractVariables(updatedContent);
-      const updatedPrompt = {
-        ...existingPrompt,
-        ...prompt,
-        content: updatedContent,
-        variables,
-        updatedAt: now,
-      };
+      const contentChanged = updatedContent !== existingPrompt.content;
+      const metaChanged = prompt.name !== undefined && prompt.name !== existingPrompt.name
+        || prompt.sceneId !== undefined && prompt.sceneId !== existingPrompt.sceneId;
 
-      await db.prompts.put(updatedPrompt);
+      // Always persist name/scene changes (even without content change)
+      if (metaChanged) {
+        await db.prompts.update(prompt.id, {
+          name: prompt.name,
+          sceneId: prompt.sceneId,
+          ...(contentChanged ? { content: updatedContent, variables, updatedAt: now } : {}),
+        });
+      } else if (contentChanged) {
+        await db.prompts.update(prompt.id, {
+          content: updatedContent,
+          variables,
+          updatedAt: now,
+        });
+      }
+      // If neither content nor metadata changed → no DB write at all
 
       // 如果内容没有变化则不生成新版本
-      if (updatedContent === existingPrompt.content) {
-        return updatedPrompt;
+      if (!contentChanged) {
+        const current = await db.prompts.get(prompt.id);
+        return current!;
       }
 
       const lastVersion = await db.versions
@@ -82,7 +93,7 @@ export async function savePrompt(
           changeLog,
         });
         await db.prompts.update(prompt.id, { currentVersionId: latestVersion.id });
-        return updatedPrompt;
+        return db.prompts.get(prompt.id)!;
       }
 
       const nextVersion = generateNextVersion(latestVersion?.version);
@@ -99,8 +110,8 @@ export async function savePrompt(
       });
 
       await db.prompts.update(prompt.id, { currentVersionId: versionId });
-
-      return { ...updatedPrompt, currentVersionId: versionId };
+      const saved = await db.prompts.get(prompt.id);
+      return { ...saved!, currentVersionId: versionId };
     } else {
       const id = generateId();
       const initialContent = prompt.content || '';

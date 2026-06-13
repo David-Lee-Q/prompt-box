@@ -39,12 +39,13 @@ interface PromptEditorProps {
   readOnly?: boolean;
   readOnlyContent?: string;
   readOnlyTitle?: string;
+  readOnlyChangeLog?: string;
   onBackToCurrent?: () => void;
   tagSuggestions?: TagSuggestion[] | null;
   onDismissTags?: () => void;
 }
 
-export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbarActions, readOnly, readOnlyContent, readOnlyTitle, onBackToCurrent, tagSuggestions, onDismissTags }: PromptEditorProps) {
+export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbarActions, readOnly, readOnlyContent, readOnlyTitle, readOnlyChangeLog, onBackToCurrent, tagSuggestions, onDismissTags }: PromptEditorProps) {
   const scenes = useAppStore((s) => s.scenes);
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
@@ -249,6 +250,9 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
         <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-md bg-primary/5 border border-primary/20 text-sm">
           <span className="text-muted-foreground">正在浏览版本</span>
           <span className="font-mono font-medium text-primary">{readOnlyTitle}</span>
+          {readOnlyChangeLog && (
+            <span className="text-muted-foreground max-w-xs truncate" title={readOnlyChangeLog}>— {readOnlyChangeLog}</span>
+          )}
           <span className="text-muted-foreground">— 只读模式</span>
           {onBackToCurrent && (
             <button
@@ -386,6 +390,13 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
           </div>
         </div>
 
+        {readOnly && readOnlyChangeLog && (
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground">更新说明</Label>
+            <p className="text-sm text-muted-foreground bg-muted/30 rounded-md p-3">{readOnlyChangeLog}</p>
+          </div>
+        )}
+
         {!readOnly && hasVariables && (
           <VariableForm
             template={content}
@@ -421,6 +432,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
                       setTags(newTags);
                       if (prompt?.id) {
                         await updatePromptTags(prompt.id, newTags);
+                        getAllTags().then(setAllTags);
                       }
                       onDismissTags?.();
                     }}

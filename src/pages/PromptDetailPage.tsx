@@ -260,6 +260,7 @@ export default function PromptDetailPage() {
                 readOnly={!!viewingVersion}
                 readOnlyContent={viewingVersion?.content}
                 readOnlyTitle={viewingVersion?.version}
+                readOnlyChangeLog={viewingVersion?.changeLog}
                 onBackToCurrent={() => setViewingVersion(null)}
                 toolbarActions={id && id !== 'new' ? (
                   <>
