@@ -122,16 +122,16 @@ export default function TestPanel({ versionId, content, onClose }: TestPanelProp
           </div>
         )}
 
-        {/* Output — fills remaining space */}
-        <div className="flex-1 min-h-0 mb-3">
-          {(isRunning || output) ? (
-            <div className="rounded-md border bg-muted/30 p-3 h-full overflow-y-auto">
-              <pre className="text-sm whitespace-pre-wrap font-sans">
-                {output || <span className="text-muted-foreground animate-pulse">等待响应...</span>}
-              </pre>
-            </div>
-          ) : <div className="flex-1" />}
-        </div>
+        {/* Output — scrollable, fills remaining space */}
+        {(isRunning || output) ? (
+          <div className="flex-1 min-h-0 overflow-y-auto rounded-md border bg-muted/30 p-3 mb-3">
+            <pre className="text-sm whitespace-pre-wrap font-sans break-words">
+              {output || <span className="text-muted-foreground animate-pulse">等待响应...</span>}
+            </pre>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-8">点击"运行测试"使用当前模型运行提示词</p>
+        )}
 
         {/* Score */}
         <div className="space-y-2 flex-shrink-0">
