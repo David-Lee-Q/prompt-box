@@ -38,9 +38,12 @@ export default function StatusBar() {
 
   // Create daily snapshot on first mount
   useEffect(() => {
-    if (!hasTodaysSnapshot()) {
-      createSnapshot().then(() => db.prompts.count().then(setPromptCount));
-    }
+    (async () => {
+      if (!(await hasTodaysSnapshot())) {
+        await createSnapshot();
+        setPromptCount(await db.prompts.count());
+      }
+    })();
   }, []);
 
   const usagePercent = storageInfo.quota

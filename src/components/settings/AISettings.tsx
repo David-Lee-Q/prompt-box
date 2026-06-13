@@ -74,6 +74,17 @@ export default function AISettings() {
       return;
     }
     const trimmed = { ...form, apiKey: form.apiKey.trim(), baseUrl: form.baseUrl.trim() };
+    // Warn if API key will be sent to a non-standard endpoint
+    const knownHosts = ['api.openai.com', 'api.anthropic.com', 'api.moonshot.cn', 'api.deepseek.com', 'dashscope.aliyuncs.com'];
+    if (trimmed.apiKey && trimmed.baseUrl) {
+      try {
+        const host = new URL(trimmed.baseUrl).hostname;
+        const isKnown = knownHosts.some(h => host === h || host.endsWith('.' + h));
+        if (!isKnown) {
+          toast({ title: '注意：API Key 将发送至第三方服务器', description: host, variant: 'success' });
+        }
+      } catch { /* invalid URL — skip */ }
+    }
     if (editingId) {
       updateProvider(editingId, trimmed);
       toast({ title: '已更新', variant: 'success' });
@@ -127,7 +138,22 @@ export default function AISettings() {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '连接失败';
-      toast({ title: '连接失败', description: msg, variant: 'destructive' });
+      // If using a custom API domain not pre-granted, request permission
+      if (form.baseUrl.trim() && msg.includes('网络')) {
+        try {
+          const origin = new URL(form.baseUrl.trim()).origin + '/*';
+          const granted = await chrome.permissions.request({ origins: [origin] });
+          if (granted) {
+            toast({ title: '权限已授予', description: '请再次点击测试连接' });
+          } else {
+            toast({ title: '连接失败', description: msg, variant: 'destructive' });
+          }
+        } catch {
+          toast({ title: '连接失败', description: msg, variant: 'destructive' });
+        }
+      } else {
+        toast({ title: '连接失败', description: msg, variant: 'destructive' });
+      }
     } finally {
       if (timer) clearTimeout(timer);
       if (testId) evictProvider(testId);

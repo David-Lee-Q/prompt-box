@@ -1,22 +1,14 @@
-import { db } from '@/db';
+import { db, type SnapshotEntry } from '@/db';
 import type { ExportData } from '@/types';
 
-const SNAPSHOT_KEY = 'ai-prompt-manager-snapshots';
 const MAX_SNAPSHOTS = 3;
-
-interface SnapshotEntry {
-  id: string;
-  timestamp: number;
-  date: string;
-  data: ExportData;
-}
 
 export async function createSnapshot(): Promise<void> {
   // Lock to prevent concurrent snapshot creation across tabs
   const LOCK_KEY = 'ai-prompt-manager-snapshot-lock';
   const now = Date.now();
   const existingLock = localStorage.getItem(LOCK_KEY);
-  if (existingLock && now - Number(existingLock) < 5000) return; // another tab is snapshotting
+  if (existingLock && now - Number(existingLock) < 5000) return;
   localStorage.setItem(LOCK_KEY, String(now));
 
   try {
@@ -34,37 +26,58 @@ export async function createSnapshot(): Promise<void> {
       versions,
     };
 
-    const snapshots = getSnapshots();
-    snapshots.unshift({
+    const entry: SnapshotEntry = {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
       date: new Date().toISOString().slice(0, 10),
       data,
-    });
+    };
+
+    await db.snapshots.add(entry);
 
     // Keep only the latest MAX_SNAPSHOTS
-    while (snapshots.length > MAX_SNAPSHOTS) {
-      snapshots.pop();
+    const all = await db.snapshots.orderBy('timestamp').reverse().toArray();
+    while (all.length > MAX_SNAPSHOTS) {
+      const oldest = all.pop()!;
+      await db.snapshots.delete(oldest.id);
     }
-
-    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshots));
   } catch {
     // Snapshot failures are non-critical
   } finally {
-    localStorage.removeItem('ai-prompt-manager-snapshot-lock');
+    localStorage.removeItem(LOCK_KEY);
   }
 }
 
-export function getSnapshots(): SnapshotEntry[] {
+export async function getSnapshots(): Promise<SnapshotEntry[]> {
   try {
-    const raw = localStorage.getItem(SNAPSHOT_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return await db.snapshots.orderBy('timestamp').reverse().toArray();
   } catch {
     return [];
   }
 }
 
-export function hasTodaysSnapshot(): boolean {
+// One-time migration: move old localStorage snapshots to IndexedDB
+async function migrateFromLocalStorage(): Promise<void> {
+  const OLD_KEY = 'ai-prompt-manager-snapshots';
+  try {
+    const raw = localStorage.getItem(OLD_KEY);
+    if (!raw) return;
+    const entries = JSON.parse(raw) as SnapshotEntry[];
+    for (const entry of entries) {
+      const exists = await db.snapshots.get(entry.id);
+      if (!exists) await db.snapshots.add(entry);
+    }
+    localStorage.removeItem(OLD_KEY);
+  } catch { /* migration failure is non-critical */ }
+}
+
+export async function hasTodaysSnapshot(): Promise<boolean> {
+  await migrateFromLocalStorage();
   const today = new Date().toISOString().slice(0, 10);
-  return getSnapshots().some((s) => s.date === today);
+  try {
+    const count = await db.snapshots.where('date').equals(today).count();
+    return count > 0;
+  } catch {
+    return false;
+  }
 }
