@@ -1,5 +1,66 @@
 # Changelog
 
+## v2.2.0 (2026-06-13)
+
+### 安全加固
+
+- `host_permissions` 从 `<all_urls>` 收缩为 13 个具体域名，自定义 API 域名动态申请
+- 快照从 localStorage 迁移至 IndexedDB（Dexie v3），含旧数据自动迁移
+- Content Script 消息增加 `sender.id` 校验
+
+### 插入可靠性重写
+
+- Content Script 使用 MutationObserver 等待动态输入框（替代一次性 querySelector）
+- Service Worker 监听 CONTENT_SCRIPT_READY 信号，维护就绪状态表
+- `chrome.tabs.onUpdated` 替代固定延时等待，已有标签页强制导航到聊天 URL
+- Shadow DOM 递归搜索 + 启发式定位（底部最大可见元素）
+- 输入事件改用 `InputEvent('insertText', composed: true)` 兼容 React 合成事件
+
+### AI 模型管理增强
+
+- Provider Pool 替代全局单例，支持多 Provider 并行调用
+- 统一 `AIError` 错误类型，用户友好错误提示
+- testConnection 内置 20s 超时，`savePrompt` 校验 sceneId 有效性
+- thinkFilter 扩展至 13 条规则，覆盖未闭合标签
+- Anthropic SDK 添加 `thinking: disabled` 从源头禁思考输出
+- 流中断时返回已累积内容（非空时）
+
+### 健壮性改进
+
+- `useKeyboardShortcuts` 改为 ref 模式，消除每帧重注册
+- `savePrompt` 内容不变时不写 DB 不生成版本
+- deleteVersion 添加 Dexie 事务保护，PromptCard 消除 N+1 查询
+- 多 Tab 状态同步（storage 事件 + visibilitychange）
+- 快照创建加锁防止多窗口并发
+- `parseCandidates` 多策略分割适配不同模型输出格式
+
+### 功能改进
+
+- AI 设置对话框滚动优化 + 编辑区表单视觉区分
+- 提示词编辑框支持拖拽调整高度（120-1200px）
+- 标签推荐移至标签行内单行展示
+- API Key 输入框密码可视切换
+- 场景删除确认逻辑修正（按场景过滤 prompts 而非全局判断）
+- 只读版本显示更新说明
+- CodeMirror 字体调大至 14px
+
+### 安全修复
+
+- 移除 `console.log` 暴露 API URL
+- 13 个 host_permissions 域名替换 `<all_urls>`
+- 测试连接前动态域名权限申请
+
+### 技术变更
+
+- TypeScript target 升级至 ES2021，lib 同步
+- 删除未使用死代码（useAIStream、maxTokens/temperature）
+- `.dockerignore` 减少 Docker 构建上下文
+- Nginx 添加 HSTS/CSP/Permissions-Policy 安全头
+- E2E 测试从 41 扩展到 46 个，新增回归测试套件
+- 3 轮四路并行专家代码审查 + 安全审查，修复 50+ 项问题
+
+---
+
 ## v2.1.0 (2026-06-11)
 
 ### Chrome 扩展支持
