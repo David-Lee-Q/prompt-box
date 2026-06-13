@@ -58,23 +58,15 @@ test.describe('v2.0 P1 功能测试', () => {
 
   // ---- Step 10: Tag Suggestions ----
 
-  test('保存含关键字内容的 Prompt 后出现标签建议', async ({ page }) => {
+  // Tag suggestion covers the same flow as regression.spec.ts — keep it simple
+  test('保存含关键字内容的 Prompt 后页面正常', async ({ page }) => {
     await createSceneAndSelect(page, 'TestScene');
     await page.getByRole('button', { name: '新建提示词' }).click();
     await page.waitForURL(/\/prompts\/new/);
     await page.getByPlaceholder('提示词名称').fill('翻译助手');
-
-    const editor = page.locator('.cm-editor .cm-content');
-    await editor.click();
-    await page.keyboard.type('请将以下内容翻译成英文，保留代码块，输出 Markdown 格式');
-    await page.waitForTimeout(300);
-
+    await page.locator('.cm-content').fill('请将以下英文内容翻译成中文并且保留原文的代码块格式输出为Markdown文档');
     await page.getByRole('button', { name: '保存' }).click();
     await page.waitForURL(/\/prompts\/(?!new)/);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
-
-    // After save, the detail page loads with content
     await expect(page.getByPlaceholder('提示词名称')).toHaveValue('翻译助手');
   });
 });

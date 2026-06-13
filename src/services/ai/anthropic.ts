@@ -83,6 +83,7 @@ export class AnthropicProvider implements AIProvider {
       max_tokens: this.maxTokens,
       messages: chatMessages,
       ...(system ? { system } : {}),
+      thinking: { type: 'disabled' },
     });
 
     const onAbort = () => stream.controller.abort();
@@ -127,7 +128,8 @@ export class AnthropicProvider implements AIProvider {
           max_tokens: this.maxTokens,
           messages: chatMessages,
           ...(system ? { system } : {}),
-            },
+          thinking: { type: 'disabled' },
+        },
         signal ? { signal } : undefined
       );
 

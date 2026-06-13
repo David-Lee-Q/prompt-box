@@ -171,9 +171,8 @@ test.describe('阶段二功能测试', () => {
     await page.getByRole('button', { name: '保存' }).click();
     await expect(page.getByText('保存成功', { exact: true })).toBeVisible({ timeout: 5000 });
 
-    // Copy button appears after save (not in create mode)
     await page.getByRole('button', { name: '复制' }).click();
-    await page.waitForTimeout(500);
+    await expect(page.getByText('已复制到剪贴板')).toBeVisible({ timeout: 5000 });
   });
 
   test('7. 收藏功能', async ({ page }) => {
@@ -188,18 +187,15 @@ test.describe('阶段二功能测试', () => {
     await page.getByRole('button', { name: '保存' }).click();
     await expect(page.getByText('保存成功', { exact: true })).toBeVisible({ timeout: 5000 });
 
-    // Go back to home page
     await page.goto('/');
     await page.waitForURL('/', { timeout: 5000 });
+    await page.waitForTimeout(800);
+
+    // Click first star button in prompt card
+    await page.getByRole('button', { name: '收藏' }).first().click();
     await page.waitForTimeout(500);
 
-    // Star the prompt card (click star icon)
-    await page.waitForTimeout(500);
-    const starIcon = page.locator('svg.lucide-star').first();
-    await starIcon.click({ force: true });
-    await page.waitForTimeout(500);
-
-    // Click "已收藏" sidebar button
+    // Click "已收藏" sidebar filter
     await page.locator('aside button').filter({ hasText: '已收藏' }).click();
     await page.waitForTimeout(500);
     await expect(page.getByText('收藏测试')).toBeVisible({ timeout: 5000 });
