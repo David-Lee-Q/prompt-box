@@ -81,11 +81,11 @@ describe('stripThinkBlocks', () => {
     expect(stripThinkBlocks(input)).toBe(input);
   });
 
-  it('strips unclosed think tag (only opening)', () => {
-    expect(stripThinkBlocks('<think>实际输出内容')).toBe('实际输出内容');
+  it('strips unclosed think tag and everything after it', () => {
+    expect(stripThinkBlocks('<think>思考内容\n后续文字')).toBe('');
   });
 
-  it('strips unclosed backslash think tag', () => {
-    expect(stripThinkBlocks('<\\think>实际输出内容')).toBe('实际输出内容');
+  it('preserves text before unclosed think tag', () => {
+    expect(stripThinkBlocks('实际输出<think>思考内容')).toBe('实际输出');
   });
 });

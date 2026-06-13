@@ -11,12 +11,12 @@ const THINK_BLOCK_RE: RegExp[] = [
   /<think\b[^>]*>[\s\S]*?<\/think>/gi,
   /\[THINKING\][\s\S]*?\[\/THINKING\]/gi,
   /【思考】[\s\S]*?【\/思考】/gi,
-  // Unclosed tags (no matching close — strip opening tag only)
-  /<\\think>/gi,
-  /<think\b[^>]*>/gi,
-  /<thinking\b[^>]*>/gi,
-  /\[THINKING\]/gi,
-  /【思考】/gi,
+  // Unclosed tags — strip from opening tag to end-of-string
+  /<\\think>[\s\S]*$/gi,
+  /<think\b[^>]*>[\s\S]*$/gi,
+  /<thinking\b[^>]*>[\s\S]*$/gi,
+  /\[THINKING\][\s\S]*$/gi,
+  /【思考】[\s\S]*$/gi,
 ];
 
 export function stripThinkBlocks(text: string): string {
