@@ -11,10 +11,9 @@ import MultiModelTest from '@/components/ai/MultiModelTest';
 import QualityAnalysisPanel from '@/components/ai/QualityAnalysisPanel';
 import QualityAnalysisBadge from '@/components/ai/QualityAnalysisBadge';
 import { analyzePrompt, type AnalysisReport } from '@/services/promptAnalyzer';
-import TagRecommendation from '@/components/ai/TagRecommendation';
 import { suggestTags } from '@/services/tagSuggest';
 import type { TagSuggestion } from '@/services/tagSuggest';
-import { getPrompt, getAllTags, updatePromptTags } from '@/services/promptService';
+import { getPrompt, getAllTags } from '@/services/promptService';
 import { rollbackToVersion, deleteVersion, toggleVersionProtection } from '@/services/versionService';
 import { deletePrompt } from '@/services/promptService';
 import { exportPrompt } from '@/utils/export-import';
@@ -251,30 +250,11 @@ export default function PromptDetailPage() {
                     </>
                   )}
                 </div>
-              {tagSuggestions && (
-                <div className="mb-3">
-                  <TagRecommendation
-                    suggestions={tagSuggestions}
-                    onApply={async (selectedTags) => {
-                      if (!prompt?.id) return;
-                      const newTags = [...prompt.tags, ...selectedTags.filter((t) => !prompt.tags.includes(t))];
-                      try {
-                        await updatePromptTags(prompt.id, newTags);
-                        const updated = await getPrompt(id!);
-                        if (updated) setPrompt(updated);
-                        toast({ title: '标签已更新', variant: 'success' });
-                      } catch (err) {
-                        toast({ title: '更新失败', variant: 'destructive', description: String(err) });
-                      }
-                      setTagSuggestions(null);
-                    }}
-                    onDismiss={() => setTagSuggestions(null)}
-                  />
-                </div>
-              )}
               <PromptEditor
                 prompt={prompt}
                 sceneId={isCreating ? createSceneId : null}
+                tagSuggestions={tagSuggestions}
+                onDismissTags={() => setTagSuggestions(null)}
                 onBack={handleBack}
                 onSaved={handleSaved}
                 readOnly={!!viewingVersion}

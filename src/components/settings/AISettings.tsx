@@ -74,17 +74,6 @@ export default function AISettings() {
       return;
     }
     const trimmed = { ...form, apiKey: form.apiKey.trim(), baseUrl: form.baseUrl.trim() };
-    // Warn if API key will be sent to a non-standard endpoint
-    const knownHosts = ['api.openai.com', 'api.anthropic.com', 'api.moonshot.cn', 'api.deepseek.com', 'dashscope.aliyuncs.com'];
-    if (trimmed.apiKey && trimmed.baseUrl) {
-      try {
-        const host = new URL(trimmed.baseUrl).hostname;
-        const isKnown = knownHosts.some(h => host === h || host.endsWith('.' + h));
-        if (!isKnown) {
-          toast({ title: '注意：API Key 将发送至第三方服务器', description: host, variant: 'success' });
-        }
-      } catch { /* invalid URL — skip */ }
-    }
     if (editingId) {
       updateProvider(editingId, trimmed);
       toast({ title: '已更新', variant: 'success' });
@@ -114,11 +103,34 @@ export default function AISettings() {
     setTesting(true);
     let testId = '';
     let timer: ReturnType<typeof setTimeout> | null = null;
+
+    // Request host permission BEFORE test (must be in user gesture context)
+    console.log('[perm-check] chrome:', !!chrome, 'permissions:', !!chrome?.permissions, 'baseUrl:', form.baseUrl.trim());
+    if (chrome?.permissions && form.baseUrl.trim()) {
+      try {
+        const origin = new URL(form.baseUrl.trim()).origin + '/*';
+        console.log('[perm-check] origin:', origin);
+        const hasPermission = await new Promise<boolean>(r =>
+          chrome.permissions.contains({ origins: [origin] }, (result) => r(result))
+        );
+        console.log('[perm-check] hasPermission:', hasPermission);
+        if (!hasPermission) {
+          const granted = await new Promise<boolean>(r =>
+            chrome.permissions.request({ origins: [origin] }, (result) => r(result))
+          );
+          if (!granted) {
+            setTesting(false);
+            toast({ title: '连接失败', description: '需要授予域名访问权限', variant: 'destructive' });
+            return;
+          }
+        }
+      } catch { /* URL parse error — skip, let testConnection handle it */ }
+    }
+
     try {
       const controller = new AbortController();
       timer = setTimeout(() => controller.abort(), 15000);
 
-      // Use unique ID per test to avoid Pool cache returning stale credentials
       testId = `test-${form.format}-${Date.now()}`;
       const provider = getOrCreateProvider({
         id: testId,
@@ -138,22 +150,7 @@ export default function AISettings() {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '连接失败';
-      // If using a custom API domain not pre-granted, request permission
-      if (form.baseUrl.trim() && msg.includes('网络')) {
-        try {
-          const origin = new URL(form.baseUrl.trim()).origin + '/*';
-          const granted = await chrome.permissions.request({ origins: [origin] });
-          if (granted) {
-            toast({ title: '权限已授予', description: '请再次点击测试连接' });
-          } else {
-            toast({ title: '连接失败', description: msg, variant: 'destructive' });
-          }
-        } catch {
-          toast({ title: '连接失败', description: msg, variant: 'destructive' });
-        }
-      } else {
-        toast({ title: '连接失败', description: msg, variant: 'destructive' });
-      }
+      toast({ title: '连接失败', description: msg, variant: 'destructive' });
     } finally {
       if (timer) clearTimeout(timer);
       if (testId) evictProvider(testId);
@@ -163,16 +160,16 @@ export default function AISettings() {
 
   return (
     <Dialog open={showSettings} onOpenChange={setShowSettings}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>AI 设置</DialogTitle>
           <DialogDescription>管理多个 AI 提供商，一键切换用于对比</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-3 px-0.5">
           {/* Provider list */}
           {providers.length > 0 && (
-            <div className="space-y-1.5 max-h-[50vh] overflow-y-auto overflow-x-hidden p-0.5 -m-0.5">
+            <div className="space-y-1.5">
               {providers.map((p) => (
                 <div key={p.id}>
                   <div
@@ -223,7 +220,7 @@ export default function AISettings() {
                   </div>
                   {/* Inline edit form */}
                   {editingId === p.id && (
-                    <div className="mt-1.5 space-y-3 rounded-lg border p-3">
+                    <div className="mt-1.5 space-y-3 rounded-lg border border-primary/50 bg-primary/5 p-3 [&_input]:bg-background [&_select]:bg-background [&_textarea]:bg-background">
                       <div className="space-y-1.5">
                         <Label htmlFor="edit-provider">AI 提供商</Label>
                         <Input
@@ -316,7 +313,7 @@ export default function AISettings() {
 
           {/* Add form */}
           {adding && (
-            <div className="space-y-3 rounded-lg border p-3">
+            <div className="space-y-3 rounded-lg border border-primary/50 bg-primary/5 p-3 [&_input]:bg-background [&_select]:bg-background [&_textarea]:bg-background">
               <div className="space-y-1.5">
                 <Label htmlFor="add-provider">AI 提供商</Label>
                 <Input

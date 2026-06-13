@@ -40,9 +40,11 @@ interface PromptEditorProps {
   readOnlyContent?: string;
   readOnlyTitle?: string;
   onBackToCurrent?: () => void;
+  tagSuggestions?: TagSuggestion[] | null;
+  onDismissTags?: () => void;
 }
 
-export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbarActions, readOnly, readOnlyContent, readOnlyTitle, onBackToCurrent }: PromptEditorProps) {
+export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbarActions, readOnly, readOnlyContent, readOnlyTitle, onBackToCurrent, tagSuggestions, onDismissTags }: PromptEditorProps) {
   const scenes = useAppStore((s) => s.scenes);
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
@@ -56,7 +58,6 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   const [createSceneId, setCreateSceneId] = useState<string | null>(null);
   const [showOptimize, setShowOptimize] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
-  const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[] | null>(null);
   const { resolvedTheme } = useTheme();
   const { isConfigured } = useSettingsStore();
   const { hasVariables } = useVariables(content);
@@ -360,6 +361,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
           <div className="border rounded-md overflow-hidden bg-background">
             <CodeMirror
               key={resolvedTheme}
+              style={{ fontSize: '14px' }}
               value={content}
               onChange={(val) => setContent(val)}
               readOnly={readOnly}
@@ -406,25 +408,26 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
           />
         )}
 
-        {tagSuggestions && (
-          <TagRecommendation
-            suggestions={tagSuggestions}
-            onApply={async (selectedTags) => {
-              const newTags = [...tags, ...selectedTags.filter((t) => !tags.includes(t))];
-              setTags(newTags);
-              if (prompt?.id) {
-                await updatePromptTags(prompt.id, newTags);
-              }
-              setTagSuggestions(null);
-            }}
-            onDismiss={() => setTagSuggestions(null)}
-          />
-        )}
-
         {!readOnly && (
           <>
             <div className="space-y-2">
-              <Label>标签</Label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Label>标签</Label>
+                {tagSuggestions && (
+                  <TagRecommendation
+                    suggestions={tagSuggestions}
+                    onApply={async (selectedTags) => {
+                      const newTags = [...tags, ...selectedTags.filter((t) => !tags.includes(t))];
+                      setTags(newTags);
+                      if (prompt?.id) {
+                        await updatePromptTags(prompt.id, newTags);
+                      }
+                      onDismissTags?.();
+                    }}
+                    onDismiss={() => onDismissTags?.()}
+                  />
+                )}
+              </div>
               <TagInput
                 tags={tags}
                 suggestions={allTags}
