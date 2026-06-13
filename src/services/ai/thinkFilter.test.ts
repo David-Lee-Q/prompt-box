@@ -80,4 +80,12 @@ describe('stripThinkBlocks', () => {
     const input = '请输出 <tag>格式</tag> 和 [LABEL]值[/LABEL]';
     expect(stripThinkBlocks(input)).toBe(input);
   });
+
+  it('strips unclosed think tag (only opening)', () => {
+    expect(stripThinkBlocks('<think>实际输出内容')).toBe('实际输出内容');
+  });
+
+  it('strips unclosed backslash think tag', () => {
+    expect(stripThinkBlocks('<\\think>实际输出内容')).toBe('实际输出内容');
+  });
 });
