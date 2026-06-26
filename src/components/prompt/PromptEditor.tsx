@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,9 @@ import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
+import { indentMore, indentLess } from '@codemirror/commands';
+import { indentUnit } from '@codemirror/language';
 import { savePrompt, updatePromptTags, updatePromptNotes, updatePromptScene, getAllTags } from '@/services/promptService';
 import { getVersion } from '@/services/versionService';
 import { toast } from '@/hooks/use-toast';
@@ -59,6 +61,37 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   const [createSceneId, setCreateSceneId] = useState<string | null>(null);
   const [showOptimize, setShowOptimize] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
+  // Custom Tab keybinding: indent at line start / selection; insert spaces at cursor otherwise
+  const smartTab = useMemo(() => ({
+    key: 'Tab',
+    run: ({ state, dispatch }: { state: any; dispatch: any }) => {
+      if (state.readOnly) return false;
+      // If there's a selection, use standard indentMore (handles multi-line)
+      const hasSelection = state.selection.ranges.some((r: any) => !r.empty);
+      if (hasSelection) return indentMore({ state, dispatch });
+      // Single cursor: check if we're at the start of the line (only whitespace before)
+      const range = state.selection.main;
+      const line = state.doc.lineAt(range.from);
+      const beforeCursor = line.text.slice(0, range.from - line.from);
+      if (/^\s*$/.test(beforeCursor)) {
+        // At line start (or only whitespace): indent the line
+        dispatch(state.update({
+          changes: { from: line.from, insert: state.facet(indentUnit) },
+          selection: { anchor: range.from + state.facet(indentUnit).length },
+        }, { userEvent: 'input.indent', scrollIntoView: true }));
+        return true;
+      }
+      // Cursor in middle/end of text: insert at cursor position
+      dispatch(state.update({
+        changes: { from: range.from, insert: state.facet(indentUnit) },
+        selection: { anchor: range.from + state.facet(indentUnit).length },
+      }, { userEvent: 'input.indent', scrollIntoView: true }));
+      return true;
+    },
+    shift: indentLess,
+    preventDefault: true,
+  }), []);
+
   const { resolvedTheme } = useTheme();
   const { isConfigured } = useSettingsStore();
   const { hasVariables } = useVariables(content);
@@ -369,10 +402,11 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
               value={content}
               onChange={(val) => setContent(val)}
               readOnly={readOnly}
-              extensions={[markdown(), json(), EditorView.lineWrapping]}
+              extensions={[markdown(), json(), EditorView.lineWrapping, keymap.of([smartTab])]}
               height={`${editorHeight}px`}
               placeholder="在此输入提示词内容..."
               theme={resolvedTheme === 'dark' ? oneDark : undefined}
+              indentWithTab={false}
               basicSetup={{
                 lineNumbers: true,
                 foldGutter: false,
