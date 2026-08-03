@@ -1,5 +1,6 @@
 export interface Scene {
   id: string;
+  userId: string;
   name: string;
   description: string;
   color: string;
@@ -20,6 +21,7 @@ export interface VariableDef {
 
 export interface Prompt {
   id: string;
+  userId: string;
   sceneId: string;
   name: string;
   content: string;
@@ -54,3 +56,6 @@ export interface ExportData {
   prompts: Prompt[];
   versions: Version[];
 }
+
+export type { User } from './auth';
+export type { LoginForm, RegisterForm } from './auth';

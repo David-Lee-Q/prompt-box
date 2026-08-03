@@ -1,20 +1,25 @@
 import { db } from '@/db';
 import type { Scene } from '@/types';
 import { generateId } from '@/utils/helpers';
+import { PUBLIC_USER_ID } from '@/constants';
 
-export async function getScenes(): Promise<Scene[]> {
-  return db.scenes.orderBy('sortOrder').toArray();
+export async function getScenes(userId: string): Promise<Scene[]> {
+  return db.scenes
+    .where('userId')
+    .anyOf([userId, PUBLIC_USER_ID])
+    .sortBy('sortOrder');
 }
 
 export async function getScene(id: string): Promise<Scene | undefined> {
   return db.scenes.get(id);
 }
 
-export async function createScene(data: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>): Promise<Scene> {
+export async function createScene(data: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>, userId: string): Promise<Scene> {
   const now = Date.now();
   const scene: Scene = {
     ...data,
     id: generateId(),
+    userId,
     createdAt: now,
     updatedAt: now,
   };

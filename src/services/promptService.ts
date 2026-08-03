@@ -3,11 +3,17 @@ import type { Prompt } from '@/types';
 import { generateNextVersion } from '@/utils/version';
 import { generateId } from '@/utils/helpers';
 import { extractVariables } from '@/utils/variables';
+import { PUBLIC_USER_ID } from '@/constants';
 
-export async function getPromptsByScene(sceneId: string): Promise<Prompt[]> {
+function matchUserId(userId: string, recordUserId: string): boolean {
+  return recordUserId === userId || recordUserId === PUBLIC_USER_ID;
+}
+
+export async function getPromptsByScene(sceneId: string, userId: string): Promise<Prompt[]> {
   return db.prompts
     .where('sceneId')
     .equals(sceneId)
+    .filter((p) => matchUserId(userId, p.userId))
     .reverse()
     .sortBy('updatedAt');
 }
@@ -24,20 +30,21 @@ export async function getPrompt(id: string): Promise<Prompt | undefined> {
   return prompt;
 }
 
-export async function getStarredPrompts(): Promise<Prompt[]> {
+export async function getStarredPrompts(userId: string): Promise<Prompt[]> {
   return db.prompts
-    .filter((p) => p.isStarred)
+    .filter((p) => p.isStarred && matchUserId(userId, p.userId))
     .toArray()
     .then((results) => results.sort((a, b) => b.updatedAt - a.updatedAt));
 }
 
-export async function getAllPrompts(): Promise<Prompt[]> {
-  return db.prompts.toArray();
+export async function getAllPrompts(userId: string): Promise<Prompt[]> {
+  return db.prompts.where('userId').anyOf([userId, PUBLIC_USER_ID]).toArray();
 }
 
 export async function savePrompt(
   prompt: Partial<Prompt> & { sceneId: string; name: string },
-  changeLog: string = '更新内容'
+  changeLog: string = '更新内容',
+  userId: string,
 ) {
   return db.transaction('rw', db.scenes, db.prompts, db.versions, async () => {
     const now = Date.now();
@@ -118,6 +125,7 @@ export async function savePrompt(
       const variables = extractVariables(initialContent);
       await db.prompts.add({
         id,
+        userId,
         sceneId: prompt.sceneId,
         name: prompt.name || '未命名提示词',
         content: initialContent,
@@ -166,8 +174,8 @@ export async function updatePromptNotes(id: string, notes: string): Promise<void
   await db.prompts.update(id, { notes, updatedAt: Date.now() });
 }
 
-export async function getAllTags(): Promise<string[]> {
-  const all = await db.prompts.toArray();
+export async function getAllTags(userId: string): Promise<string[]> {
+  const all = await db.prompts.where('userId').anyOf([userId, PUBLIC_USER_ID]).toArray();
   const tagSet = new Set<string>();
   for (const p of all) {
     for (const tag of p.tags) {
@@ -177,10 +185,11 @@ export async function getAllTags(): Promise<string[]> {
   return Array.from(tagSet).sort();
 }
 
-export async function getPromptsByTag(tag: string): Promise<Prompt[]> {
+export async function getPromptsByTag(tag: string, userId: string): Promise<Prompt[]> {
   return db.prompts
     .where('tags')
     .equals(tag)
+    .filter((p) => matchUserId(userId, p.userId))
     .reverse()
     .sortBy('updatedAt');
 }
@@ -189,10 +198,10 @@ export async function updatePromptScene(id: string, sceneId: string): Promise<vo
   await db.prompts.update(id, { sceneId, updatedAt: Date.now() });
 }
 
-export async function searchPrompts(query: string): Promise<Prompt[]> {
+export async function searchPrompts(query: string, userId: string): Promise<Prompt[]> {
   const lower = query.toLowerCase();
   return db.prompts
-    .filter((p) => p.name.toLowerCase().includes(lower) || p.content.toLowerCase().includes(lower))
+    .filter((p) => matchUserId(userId, p.userId) && (p.name.toLowerCase().includes(lower) || p.content.toLowerCase().includes(lower)))
     .toArray()
     .then((results) => results.sort((a, b) => b.updatedAt - a.updatedAt));
 }

@@ -14,13 +14,15 @@ export async function getVersion(id: string): Promise<Version | undefined> {
   return db.versions.get(id);
 }
 
-export async function rollbackToVersion(promptId: string, versionId: string) {
+export async function rollbackToVersion(promptId: string, versionId: string, userId?: string) {
   return db.transaction('rw', db.prompts, db.versions, async () => {
     const version = await db.versions.get(versionId);
     if (!version) throw new Error('版本不存在');
     if (version.promptId !== promptId) throw new Error('版本与提示词不匹配');
 
-    const prompt = await db.prompts.get(promptId);
+    const prompt = userId
+      ? await db.prompts.where('id').equals(promptId).and(p => p.userId === userId).first()
+      : await db.prompts.get(promptId);
     if (!prompt) throw new Error('提示词不存在');
 
     await db.prompts.update(promptId, {

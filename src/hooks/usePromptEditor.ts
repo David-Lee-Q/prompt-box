@@ -4,6 +4,7 @@ import { getVersion } from '@/services/versionService';
 import { toast } from '@/hooks/use-toast';
 import { useVariables } from '@/hooks/useVariables';
 import type { Prompt } from '@/types';
+import { getSessionUser } from '@/store/authStore';
 
 const DRAFT_KEY_PREFIX = 'prompt-draft-';
 const AUTOSAVE_INTERVAL = 30000;
@@ -81,7 +82,7 @@ export function usePromptEditor(
       setCurrentVersion('');
       setUpdatedDate(0);
     }
-    getAllTags().then(setAllTags);
+    getAllTags(getSessionUser()!.id).then(setAllTags);
   }, [prompt, sceneId, draftKey]);
 
   // Draft auto-save
@@ -115,7 +116,8 @@ export function usePromptEditor(
         prompt?.id
           ? { id: prompt.id, sceneId: prompt.sceneId, name: finalName, content }
           : { sceneId: targetSceneId, name: finalName, content },
-        changeLog || '更新内容'
+        changeLog || '更新内容',
+        getSessionUser()!.id
       );
       toast({ title: '保存成功', variant: 'success' });
       setChangeLog('');

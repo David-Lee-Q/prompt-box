@@ -2,15 +2,19 @@ import { useState, useEffect } from 'react';
 import { X, Calendar } from 'lucide-react';
 import { getAllTags } from '@/services/promptService';
 import useAppStore from '@/store/useAppStore';
+import useAuthStore from '@/store/authStore';
 
 export default function FilterBar() {
   const { filterTag, setFilterTag, dateRange, setDateRange, loadPrompts } = useAppStore();
+  const currentUser = useAuthStore((s) => s.currentUser);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
-    getAllTags().then(setAllTags);
-  }, []);
+    if (currentUser) {
+      getAllTags(currentUser.id).then(setAllTags);
+    }
+  }, [currentUser]);
 
   const hasActiveFilters = filterTag !== null || dateRange.from !== null || dateRange.to !== null;
 

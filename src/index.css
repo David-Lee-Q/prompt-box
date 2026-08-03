@@ -73,3 +73,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* Prose SVG rendering */
+.prose svg {
+  max-width: 100%;
+  height: auto;
+}
+.prose svg text {
+  font-family: system-ui, sans-serif;
+}

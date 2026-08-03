@@ -1,9 +1,10 @@
 import { db, type SnapshotEntry } from '@/db';
 import type { ExportData } from '@/types';
+import { PUBLIC_USER_ID } from '@/constants';
 
 const MAX_SNAPSHOTS = 3;
 
-export async function createSnapshot(): Promise<void> {
+export async function createSnapshot(userId?: string): Promise<void> {
   // Lock to prevent concurrent snapshot creation across tabs
   const LOCK_KEY = 'ai-prompt-manager-snapshot-lock';
   const now = Date.now();
@@ -13,8 +14,8 @@ export async function createSnapshot(): Promise<void> {
 
   try {
     const [scenes, prompts, versions] = await Promise.all([
-      db.scenes.toArray(),
-      db.prompts.toArray(),
+      userId ? db.scenes.where('userId').anyOf([userId, PUBLIC_USER_ID]).toArray() : db.scenes.toArray(),
+      userId ? db.prompts.where('userId').anyOf([userId, PUBLIC_USER_ID]).toArray() : db.prompts.toArray(),
       db.versions.toArray(),
     ]);
 

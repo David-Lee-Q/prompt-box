@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { Scene, Prompt, Version } from '@/types';
 import { getScenes } from '@/services/sceneService';
 import { getAllPrompts, getPromptsByScene, getStarredPrompts, searchPrompts } from '@/services/promptService';
+import { migrateLegacyData } from '@/db';
+import { getSessionUser } from '@/store/authStore';
 
 interface AppStore {
   scenes: Scene[];
@@ -64,8 +66,14 @@ const useAppStore = create<AppStore>((set, get) => ({
   loadAll: async () => {
     set({ isLoading: true, loadError: null });
     try {
-      const scenes = await getScenes();
-      set({ scenes, isLoading: false });
+      const user = getSessionUser();
+      if (user) {
+        await migrateLegacyData(user.id);
+        const scenes = await getScenes(user.id);
+        set({ scenes, isLoading: false });
+      } else {
+        set({ scenes: [], isLoading: false });
+      }
       await get().refreshStorageInfo();
     } catch {
       set({ isLoading: false, loadError: '数据加载失败，请刷新页面重试' });
@@ -74,17 +82,22 @@ const useAppStore = create<AppStore>((set, get) => ({
 
   loadPrompts: async () => {
     const { activeSceneId, searchQuery, isStarredFilter, filterTag, dateRange } = get();
+    const user = getSessionUser();
+    if (!user) {
+      set({ prompts: [] });
+      return;
+    }
 
     let results: Prompt[];
 
     if (searchQuery) {
-      results = await searchPrompts(searchQuery);
+      results = await searchPrompts(searchQuery, user.id);
     } else if (isStarredFilter) {
-      results = await getStarredPrompts();
+      results = await getStarredPrompts(user.id);
     } else if (activeSceneId) {
-      results = await getPromptsByScene(activeSceneId);
+      results = await getPromptsByScene(activeSceneId, user.id);
     } else {
-      results = await getAllPrompts();
+      results = await getAllPrompts(user.id);
     }
 
     // Apply tag filter in memory

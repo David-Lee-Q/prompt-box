@@ -14,7 +14,7 @@ const ICON_COLORS = [
 interface SceneFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSubmit: (data: Omit<Scene, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => void;
   initialData?: Scene | null;
 }
 

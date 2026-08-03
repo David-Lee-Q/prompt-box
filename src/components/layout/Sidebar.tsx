@@ -3,6 +3,8 @@ import { Star, Plus, Trash2, Edit3, Upload, X, Folder } from 'lucide-react';
 import useAppStore from '@/store/useAppStore';
 import type { Scene } from '@/types';
 import { db } from '@/db';
+import { getSessionUser } from '@/store/authStore';
+import { PUBLIC_USER_ID } from '@/constants';
 
 interface SidebarProps {
   onNewScene: () => void;
@@ -26,7 +28,9 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
   const [promptCounts, setPromptCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    db.prompts.toArray().then((all) => {
+    const user = getSessionUser();
+    const query = user ? db.prompts.where('userId').anyOf([user.id, PUBLIC_USER_ID]).toArray() : db.prompts.toArray();
+    query.then((all) => {
       const counts: Record<string, number> = {};
       all.forEach((p) => { counts[p.sceneId] = (counts[p.sceneId] || 0) + 1; });
       setPromptCounts(counts);

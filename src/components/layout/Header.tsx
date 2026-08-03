@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Upload, Download, Plus, Clock, Settings } from 'lucide-react';
+import { Search, Upload, Download, Plus, Clock, Settings, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import useAppStore from '@/store/useAppStore';
 import useSettingsStore from '@/store/settingsStore';
+import useAuthStore, { getSessionUser } from '@/store/authStore';
 import { exportAllData, importData, validateImportData, detectConflicts } from '@/utils/export-import';
 import { toast } from '@/hooks/use-toast';
 import ThemeToggle from '@/components/layout/ThemeToggle';
@@ -36,7 +37,8 @@ export default function Header({ onNewPrompt }: HeaderProps) {
 
   const handleExport = async () => {
     try {
-      await exportAllData();
+      const user = getSessionUser();
+      await exportAllData(user?.id);
       toast({ title: '导出成功', description: '数据已下载到本地文件' });
     } catch {
       toast({ title: '导出失败', variant: 'destructive', description: '导出过程中出现错误' });
@@ -87,7 +89,8 @@ export default function Header({ onNewPrompt }: HeaderProps) {
         }
       }
 
-      const result = await importData(text, strategy);
+      const user = getSessionUser();
+      const result = await importData(text, strategy, user?.id);
       if (result.success) {
         toast({
           title: '导入成功',
@@ -245,6 +248,9 @@ export default function Header({ onNewPrompt }: HeaderProps) {
         <ThemeToggle />
         <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="AI 设置">
           <Settings className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => useAuthStore.getState().logout()} title="退出登录">
+          <LogOut className="h-4 w-4" />
         </Button>
         <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
       </div>

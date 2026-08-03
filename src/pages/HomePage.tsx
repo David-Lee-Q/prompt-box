@@ -8,6 +8,7 @@ import StatusBar from '@/components/layout/StatusBar';
 import SceneForm from '@/components/scene/SceneForm';
 import PromptList from '@/components/prompt/PromptList';
 import useAppStore from '@/store/useAppStore';
+import useAuthStore from '@/store/authStore';
 import { createScene, updateScene, deleteScene } from '@/services/sceneService';
 import { toggleStarPrompt } from '@/services/promptService';
 import { exportAllData, exportScene } from '@/utils/export-import';
@@ -23,6 +24,8 @@ export default function HomePage() {
     activeSceneId,
     loadError,
   } = useAppStore();
+
+  const currentUser = useAuthStore((s) => s.currentUser);
 
   const [sceneFormOpen, setSceneFormOpen] = useState(false);
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
@@ -71,13 +74,13 @@ export default function HomePage() {
     setDeletingScene(null);
   };
 
-  const handleSceneSubmit = async (data: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSceneSubmit = async (data: Omit<Scene, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
     try {
       if (editingScene) {
         await updateScene(editingScene.id, data);
         toast({ title: '更新成功', description: `场景「${data.name}」已更新` });
       } else {
-        await createScene(data);
+        await createScene({ ...data, userId: currentUser!.id }, currentUser!.id);
         toast({ title: '创建成功', description: `场景「${data.name}」已创建` });
       }
       await loadAll();

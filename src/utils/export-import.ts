@@ -1,6 +1,7 @@
 import { db } from '@/db';
 import type { ExportData, Scene, Prompt } from '@/types';
 import { generateId } from '@/utils/helpers';
+import { PUBLIC_USER_ID } from '@/constants';
 
 type ConflictStrategy = 'overwrite' | 'skip' | 'rename';
 
@@ -23,10 +24,10 @@ function downloadJSON(data: ExportData, prefix: string) {
   URL.revokeObjectURL(url);
 }
 
-export async function exportAllData(): Promise<void> {
+export async function exportAllData(userId?: string): Promise<void> {
   const [scenes, prompts, versions] = await Promise.all([
-    db.scenes.toArray(),
-    db.prompts.toArray(),
+    userId ? db.scenes.where('userId').anyOf([userId, PUBLIC_USER_ID]).toArray() : db.scenes.toArray(),
+    userId ? db.prompts.where('userId').anyOf([userId, PUBLIC_USER_ID]).toArray() : db.prompts.toArray(),
     db.versions.toArray(),
   ]);
 
@@ -126,7 +127,8 @@ export async function detectConflicts(
 
 export async function importData(
   jsonStr: string,
-  strategy: ConflictStrategy = 'skip'
+  strategy: ConflictStrategy = 'skip',
+  userId?: string
 ): Promise<ImportResult> {
   const validation = validateImportData(jsonStr);
   if (validation.error) {
@@ -186,11 +188,13 @@ export async function importData(
 
     // Write scenes
     for (const scene of writeScenes) {
+      if (userId) scene.userId = userId;
       await db.scenes.put(scene);
     }
 
     // Write prompts
     for (const prompt of writePrompts) {
+      if (userId) prompt.userId = userId;
       await db.prompts.put(prompt);
     }
 

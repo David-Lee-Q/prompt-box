@@ -18,6 +18,7 @@ import { rollbackToVersion, deleteVersion, toggleVersionProtection } from '@/ser
 import { deletePrompt } from '@/services/promptService';
 import { exportPrompt } from '@/utils/export-import';
 import useAppStore from '@/store/useAppStore';
+import useAuthStore from '@/store/authStore';
 import type { Prompt, Version } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
@@ -43,6 +44,7 @@ export default function PromptDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { loadPrompts } = useAppStore();
+  const currentUser = useAuthStore((s) => s.currentUser);
   const [searchParams] = useSearchParams();
 
   const [prompt, setPrompt] = useState<Prompt | null>(null);
@@ -58,6 +60,7 @@ export default function PromptDetailPage() {
   const [viewingVersion, setViewingVersion] = useState<Version | null>(null);
   const [panelWidth, setPanelWidth] = useState(480);
   const [isResizing, setIsResizing] = useState(false);
+  const [format, setFormat] = useState<'markdown' | 'html'>('markdown');
 
   const isCreating = id === 'new';
   const createSceneId = isCreating ? searchParams.get('sceneId') : null;
@@ -68,7 +71,7 @@ export default function PromptDetailPage() {
         if (p) {
           setPrompt(p);
           if (p.tags.length < 3 && p.content.length >= 50) {
-            getAllTags().then((allTags) => {
+            getAllTags(currentUser!.id).then((allTags) => {
               const suggestions = suggestTags(p.content, p.tags, allTags);
               if (suggestions.length > 0) setTagSuggestions(suggestions);
             });
@@ -122,7 +125,7 @@ export default function PromptDetailPage() {
   const handleRollback = async (versionId: string) => {
     if (!id) return;
     try {
-      await rollbackToVersion(id, versionId);
+      await rollbackToVersion(id, versionId, currentUser?.id);
       setViewingVersion(null);
       const updated = await getPrompt(id);
       if (updated) setPrompt(updated);
@@ -262,6 +265,8 @@ export default function PromptDetailPage() {
                 readOnlyTitle={viewingVersion?.version}
                 readOnlyChangeLog={viewingVersion?.changeLog}
                 onBackToCurrent={() => setViewingVersion(null)}
+                previewFormat={format}
+                onFormatChange={setFormat}
                 toolbarActions={id && id !== 'new' ? (
                   <>
                     <button

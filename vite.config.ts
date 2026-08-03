@@ -91,6 +91,11 @@ export default defineConfig(({ mode }) => {
       react(),
       ...(!isExtension ? [apiProxyPlugin()] : []),
     ],
+    server: {
+      host: '0.0.0.0',
+      port: 3000,
+      allowedHosts: ['.cosmoplat.cn'],
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

@@ -3,7 +3,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Save, ArrowLeft, Hash, Clock, Sparkles } from 'lucide-react';
+import { Save, ArrowLeft, Hash, Clock, Sparkles, Eye } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { json } from '@codemirror/lang-json';
@@ -24,10 +24,14 @@ import GenerateDialog from '@/components/ai/GenerateDialog';
 import TagRecommendation from '@/components/ai/TagRecommendation';
 import type { TagSuggestion } from '@/services/tagSuggest';
 import useAppStore from '@/store/useAppStore';
+import { getSessionUser } from '@/store/authStore';
 import useSettingsStore from '@/store/settingsStore';
 import { formatDate } from '@/utils/helpers';
 import { copyToClipboard } from '@/utils/clipboard';
 import type { Prompt } from '@/types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 const DRAFT_KEY_PREFIX = 'prompt-draft-';
 const AUTOSAVE_INTERVAL = 30000;
@@ -45,10 +49,13 @@ interface PromptEditorProps {
   onBackToCurrent?: () => void;
   tagSuggestions?: TagSuggestion[] | null;
   onDismissTags?: () => void;
+  previewFormat?: 'markdown' | 'html';
+  onFormatChange?: (format: 'markdown' | 'html') => void;
 }
 
-export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbarActions, readOnly, readOnlyContent, readOnlyTitle, readOnlyChangeLog, onBackToCurrent, tagSuggestions, onDismissTags }: PromptEditorProps) {
+export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbarActions, readOnly, readOnlyContent, readOnlyTitle, readOnlyChangeLog, onBackToCurrent, tagSuggestions, onDismissTags, previewFormat = 'markdown', onFormatChange }: PromptEditorProps) {
   const scenes = useAppStore((s) => s.scenes);
+  const userId = getSessionUser()!.id;
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -140,7 +147,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
       setUpdatedDate(0);
     }
     if (sceneId) setCreateSceneId(sceneId);
-    getAllTags().then(setAllTags);
+    getAllTags(userId).then(setAllTags);
     // Only mark ready once content is actually initialized (prompt loaded or in create mode)
     if (prompt || sceneId) isReadyRef.current = true;
   }, [prompt, sceneId]);
@@ -206,7 +213,8 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
         prompt?.id
           ? { id: prompt.id, sceneId: prompt.sceneId, name: finalName, content }
           : { sceneId: targetSceneId, name: finalName, content },
-        changeLog || '更新内容'
+        changeLog || '更新内容',
+        userId ?? ''
       );
       toast({ title: '保存成功', variant: 'success' });
       setChangeLog('');
@@ -224,7 +232,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
     setTags(newTags);
     if (prompt?.id) {
       await updatePromptTags(prompt.id, newTags);
-      getAllTags().then(setAllTags);
+getAllTags(userId).then(setAllTags);
     }
   };
 
@@ -391,29 +399,45 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="font-bold">提示词内容</Label>
-            {toolbarActions && (
-              <div className="flex items-center gap-1">{toolbarActions}</div>
-            )}
+            <div className="flex items-center gap-1">
+              {onFormatChange && (
+                <button
+                  onClick={() => onFormatChange(previewFormat === 'markdown' ? 'html' : 'markdown')}
+                  className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors active:scale-[0.95] ${previewFormat === 'html' ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}`}
+                  title="切换预览格式"
+                >
+                  <Eye className="h-3 w-3" />
+                  {previewFormat === 'markdown' ? 'Markdown' : 'HTML'}
+                </button>
+              )}
+              {toolbarActions}
+            </div>
           </div>
           <div className="border rounded-md overflow-hidden bg-background">
-            <CodeMirror
-              key={resolvedTheme}
-              style={{ fontSize: '14px' }}
-              value={content}
-              onChange={(val) => setContent(val)}
-              readOnly={readOnly}
-              extensions={[markdown(), json(), EditorView.lineWrapping, keymap.of([smartTab])]}
-              height={`${editorHeight}px`}
-              placeholder="在此输入提示词内容..."
-              theme={resolvedTheme === 'dark' ? oneDark : undefined}
-              indentWithTab={false}
-              basicSetup={{
-                lineNumbers: true,
-                foldGutter: false,
-                highlightActiveLine: !readOnly,
-                autocompletion: false,
-              }}
-            />
+            {previewFormat === 'html' ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-y-auto" style={{ minHeight: `${editorHeight}px`, maxHeight: `${editorHeight}px` }}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{content || readOnlyContent || ''}</ReactMarkdown>
+              </div>
+            ) : (
+              <CodeMirror
+                key={resolvedTheme}
+                style={{ fontSize: '14px' }}
+                value={content}
+                onChange={(val) => setContent(val)}
+                readOnly={readOnly}
+                extensions={[markdown(), json(), EditorView.lineWrapping, keymap.of([smartTab])]}
+                height={`${editorHeight}px`}
+                placeholder="在此输入提示词内容..."
+                theme={resolvedTheme === 'dark' ? oneDark : undefined}
+                indentWithTab={false}
+                basicSetup={{
+                  lineNumbers: true,
+                  foldGutter: false,
+                  highlightActiveLine: !readOnly,
+                  autocompletion: false,
+                }}
+              />
+            )}
             {!readOnly && (
               <div
                 onMouseDown={(e) => { e.preventDefault(); setIsResizingEditor(true); }}
@@ -466,7 +490,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
                       setTags(newTags);
                       if (prompt?.id) {
                         await updatePromptTags(prompt.id, newTags);
-                        getAllTags().then(setAllTags);
+getAllTags(userId).then(setAllTags);
                       }
                       onDismissTags?.();
                     }}

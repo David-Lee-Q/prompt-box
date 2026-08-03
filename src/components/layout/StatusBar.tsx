@@ -3,8 +3,10 @@ import { hasTodaysSnapshot, createSnapshot } from '@/utils/snapshot';
 import { db } from '@/db';
 import useAppStore from '@/store/useAppStore';
 import { exportAllData } from '@/utils/export-import';
+import { getSessionUser } from '@/store/authStore';
 import { toast } from '@/hooks/use-toast';
 import { Database, FileText, AlertTriangle, Download, User } from 'lucide-react';
+import { PUBLIC_USER_ID } from '@/constants';
 
 const LAST_EXPORT_KEY = 'ai-prompt-manager-last-export';
 
@@ -33,15 +35,17 @@ export default function StatusBar() {
 
   useEffect(() => {
     refreshStorageInfo();
-    db.prompts.count().then(setPromptCount);
+    const user = getSessionUser();
+    (user ? db.prompts.where('userId').anyOf([user.id, PUBLIC_USER_ID]).count() : db.prompts.count()).then(setPromptCount);
   }, [refreshStorageInfo]);
 
   // Create daily snapshot on first mount
   useEffect(() => {
     (async () => {
+      const user = getSessionUser();
       if (!(await hasTodaysSnapshot())) {
-        await createSnapshot();
-        setPromptCount(await db.prompts.count());
+        await createSnapshot(user?.id);
+        setPromptCount(user ? await db.prompts.where('userId').anyOf([user.id, PUBLIC_USER_ID]).count() : await db.prompts.count());
       }
     })();
   }, []);
@@ -55,7 +59,8 @@ export default function StatusBar() {
 
   const handleExport = async () => {
     try {
-      await exportAllData();
+      const user = getSessionUser();
+      await exportAllData(user?.id);
       localStorage.setItem(LAST_EXPORT_KEY, String(Date.now()));
       setDaysSinceExport(0);
       toast({ title: '导出成功', description: '数据已下载到本地文件', variant: 'success' });
