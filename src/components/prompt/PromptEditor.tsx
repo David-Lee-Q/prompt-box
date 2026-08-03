@@ -29,9 +29,6 @@ import useSettingsStore from '@/store/settingsStore';
 import { formatDate } from '@/utils/helpers';
 import { copyToClipboard } from '@/utils/clipboard';
 import type { Prompt } from '@/types';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
 
 const DRAFT_KEY_PREFIX = 'prompt-draft-';
 const AUTOSAVE_INTERVAL = 30000;
@@ -55,7 +52,8 @@ interface PromptEditorProps {
 
 export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbarActions, readOnly, readOnlyContent, readOnlyTitle, readOnlyChangeLog, onBackToCurrent, tagSuggestions, onDismissTags, previewFormat = 'markdown', onFormatChange }: PromptEditorProps) {
   const scenes = useAppStore((s) => s.scenes);
-  const userId = getSessionUser()!.id;
+  const sessionUser = getSessionUser();
+  const userId = sessionUser?.id ?? '';
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -134,7 +132,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
       if (prompt.currentVersionId) {
         getVersion(prompt.currentVersionId).then((v) => {
           if (v) setCurrentVersion(v.version);
-        });
+        }).catch(() => {});
       }
     } else if (!sceneId) {
       // Neither prompt nor creating — reset to defaults
@@ -147,7 +145,9 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
       setUpdatedDate(0);
     }
     if (sceneId) setCreateSceneId(sceneId);
-    getAllTags(userId).then(setAllTags);
+    if (userId) {
+      getAllTags(userId).then(setAllTags).catch(() => {});
+    }
     // Only mark ready once content is actually initialized (prompt loaded or in create mode)
     if (prompt || sceneId) isReadyRef.current = true;
   }, [prompt, sceneId]);
@@ -231,8 +231,10 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   const handleTagsChange = async (newTags: string[]) => {
     setTags(newTags);
     if (prompt?.id) {
-      await updatePromptTags(prompt.id, newTags);
-getAllTags(userId).then(setAllTags);
+      try {
+        await updatePromptTags(prompt.id, newTags);
+        if (userId) getAllTags(userId).then(setAllTags).catch(() => {});
+      } catch {}
     }
   };
 
@@ -241,7 +243,9 @@ getAllTags(userId).then(setAllTags);
     if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
     notesTimerRef.current = setTimeout(async () => {
       if (prompt?.id) {
-        await updatePromptNotes(prompt.id, val);
+        try {
+          await updatePromptNotes(prompt.id, val);
+        } catch {}
       }
     }, 500);
   };
@@ -415,9 +419,7 @@ getAllTags(userId).then(setAllTags);
           </div>
           <div className="border rounded-md overflow-hidden bg-background">
             {previewFormat === 'html' ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-y-auto" style={{ minHeight: `${editorHeight}px`, maxHeight: `${editorHeight}px` }}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{content || readOnlyContent || ''}</ReactMarkdown>
-              </div>
+              <div className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-y-auto" style={{ minHeight: `${editorHeight}px`, maxHeight: `${editorHeight}px` }} dangerouslySetInnerHTML={{ __html: content || readOnlyContent || '' }} />
             ) : (
               <CodeMirror
                 key={resolvedTheme}

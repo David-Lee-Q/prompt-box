@@ -10,7 +10,7 @@ import PromptList from '@/components/prompt/PromptList';
 import useAppStore from '@/store/useAppStore';
 import useAuthStore from '@/store/authStore';
 import { createScene, updateScene, deleteScene } from '@/services/sceneService';
-import { toggleStarPrompt } from '@/services/promptService';
+import { toggleStarPrompt, deletePrompt } from '@/services/promptService';
 import { exportAllData, exportScene } from '@/utils/export-import';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import type { Scene } from '@/types';
@@ -30,6 +30,7 @@ export default function HomePage() {
   const [sceneFormOpen, setSceneFormOpen] = useState(false);
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
   const [deletingScene, setDeletingScene] = useState<Scene | null>(null);
+  const [deletingPromptId, setDeletingPromptId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -135,6 +136,22 @@ export default function HomePage() {
     }
   };
 
+  const handleDeletePrompt = async (id: string) => {
+    setDeletingPromptId(id);
+  };
+
+  const confirmDeletePrompt = async () => {
+    if (!deletingPromptId) return;
+    try {
+      await deletePrompt(deletingPromptId, currentUser?.id);
+      toast({ title: '删除成功' });
+      await loadPrompts();
+    } catch (err) {
+      toast({ title: '删除失败', variant: 'destructive', description: String(err) });
+    }
+    setDeletingPromptId(null);
+  };
+
   return (
     <div className="h-screen flex flex-col">
       <Header onNewPrompt={handleNewPrompt} />
@@ -167,6 +184,7 @@ export default function HomePage() {
             onNewPrompt={handleNewPrompt}
             onPromptClick={handlePromptClick}
             onToggleStar={handleToggleStar}
+            onDeletePrompt={handleDeletePrompt}
           />
         </MainContent>
       </div>
@@ -198,6 +216,32 @@ export default function HomePage() {
               </button>
               <button
                 onClick={confirmDeleteScene}
+                className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Prompt Confirmation */}
+      {deletingPromptId && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setDeletingPromptId(null)}>
+          <div className="bg-background rounded-lg p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-medium mb-2">删除提示词</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              确定要删除此提示词吗？其所有版本也会一并删除，此操作不可撤销。
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeletingPromptId(null)}
+                className="px-4 py-2 text-sm rounded-md border hover:bg-accent"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmDeletePrompt}
                 className="px-4 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 删除

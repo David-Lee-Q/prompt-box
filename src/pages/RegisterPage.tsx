@@ -13,6 +13,16 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
+
+  const handleConfirmChange = (val: string) => {
+    setConfirmPassword(val);
+    if (val.length > 0 && password.length > 0) {
+      setPasswordMismatch(val !== password);
+    } else {
+      setPasswordMismatch(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,9 +78,13 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="再次输入密码"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => handleConfirmChange(e.target.value)}
                 required
+                className={passwordMismatch ? 'border-destructive' : ''}
               />
+              {passwordMismatch && (
+                <p className="text-xs text-destructive">两次输入的密码不一致</p>
+              )}
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </CardContent>

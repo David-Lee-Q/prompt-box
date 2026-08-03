@@ -184,11 +184,20 @@ const useAppStore = create<AppStore>((set, get) => ({
 
 // Cross-tab sync: reload data when tab becomes visible (other tab may have changed it)
 if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => {
+  let cleanup = false;
+  const handler = () => {
+    if (cleanup) return;
     if (document.visibilityState === 'visible') {
       const store = useAppStore.getState();
-      store.loadAll().then(() => store.loadPrompts());
+      store.loadAll().catch(() => {}).then(() => store.loadPrompts().catch(() => {}));
     }
-  });
+  };
+  document.addEventListener('visibilitychange', handler);
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      cleanup = true;
+      document.removeEventListener('visibilitychange', handler);
+    });
+  }
 }
 export default useAppStore;

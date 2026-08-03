@@ -391,6 +391,26 @@ export default function AISettings() {
               </div>
             </div>
           )}
+
+          {/* Feature update */}
+          <details className="group rounded-lg border border-border">
+            <summary className="flex items-center justify-between px-3 py-2 text-sm font-medium cursor-pointer hover:bg-accent/50 transition-colors rounded-lg select-none">
+              <span>功能更新</span>
+              <span className="text-xs text-muted-foreground transition-transform group-open:rotate-180">&#9660;</span>
+            </summary>
+            <div className="px-3 pb-3 pt-1 text-xs text-muted-foreground space-y-1.5">
+              <div className="font-medium text-foreground">v2.3.0 最新迭代</div>
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>用户认证</strong> — 登录/注册功能，基于 IndexedDB 本地存储用户信息</li>
+                <li><strong>SVG 场景预览</strong> — 场景卡片支持 SVG 图文预览，直观展示场景内容</li>
+                <li><strong>HTML 预览渲染</strong> — 提示词详情页支持 HTML 格式渲染，正确显示标题、图片、表格</li>
+                <li><strong>Markdown 导入</strong> — 支持导入 .md 文件为提示词，自动提取 <code className="bg-muted px-1 rounded text-[10px]">{`{{变量}}`}</code> 模板</li>
+                <li><strong>API 连接优化</strong> — 优先直连 API，失败自动回退代理，提升请求成功率</li>
+                <li><strong>表格操作列</strong> — 表格视图新增编辑、收藏、删除操作按钮，批量管理更方便</li>
+                <li><strong>数据安全加固</strong> — Service 层增加 userId 权限校验，防止跨用户数据访问</li>
+              </ul>
+            </div>
+          </details>
         </div>
       </DialogContent>
     </Dialog>

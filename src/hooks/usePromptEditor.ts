@@ -48,6 +48,7 @@ export function usePromptEditor(
   const draftKey = prompt?.id ? `${DRAFT_KEY_PREFIX}${prompt.id}` : null;
 
   useEffect(() => {
+    const user = getSessionUser();
     if (prompt) {
       const saved = draftKey ? localStorage.getItem(draftKey) : null;
       if (saved) {
@@ -69,9 +70,9 @@ export function usePromptEditor(
       setUpdatedDate(prompt.updatedAt);
 
       if (prompt.currentVersionId) {
-        getVersion(prompt.currentVersionId).then((v) => {
+        getVersion(prompt.currentVersionId, user?.id).then((v) => {
           if (v) setCurrentVersion(v.version);
-        });
+        }).catch(() => {});
       }
     } else if (!sceneId) {
       setName('');
@@ -82,7 +83,9 @@ export function usePromptEditor(
       setCurrentVersion('');
       setUpdatedDate(0);
     }
-    getAllTags(getSessionUser()!.id).then(setAllTags);
+    if (user) {
+      getAllTags(user.id).then(setAllTags).catch(() => {});
+    }
   }, [prompt, sceneId, draftKey]);
 
   // Draft auto-save
@@ -107,6 +110,8 @@ export function usePromptEditor(
   }, []);
 
   const handleSave = async () => {
+    const user = getSessionUser();
+    if (!user) return;
     const finalName = name.trim() || '未命名提示词';
     const targetSceneId = prompt?.sceneId || sceneId;
     if (!targetSceneId) return;
@@ -117,7 +122,7 @@ export function usePromptEditor(
           ? { id: prompt.id, sceneId: prompt.sceneId, name: finalName, content }
           : { sceneId: targetSceneId, name: finalName, content },
         changeLog || '更新内容',
-        getSessionUser()!.id
+        user.id
       );
       toast({ title: '保存成功', variant: 'success' });
       setChangeLog('');
@@ -139,7 +144,9 @@ export function usePromptEditor(
     if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
     notesTimerRef.current = setTimeout(async () => {
       if (prompt?.id) {
-        await updatePromptNotes(prompt.id, val);
+        try {
+          await updatePromptNotes(prompt.id, val, getSessionUser()?.id);
+        } catch {}
       }
     }, 500);
   };

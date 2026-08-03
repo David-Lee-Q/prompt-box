@@ -62,7 +62,7 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
         <button
           onClick={onNewScene}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary/10 text-primary dark:text-primary-foreground hover:bg-primary/20 transition-colors text-xs font-semibold"
-          title="新建场景"
+          aria-label="新建场景"
         >
           <Plus className="h-3.5 w-3.5" />
           新建
@@ -111,7 +111,7 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
                 <button
                   onClick={(e) => { e.stopPropagation(); onEditScene(scene); }}
                   className="size-7 flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
-                  title="编辑场景"
+                  aria-label="编辑场景"
                 >
                   <Edit3 className="size-3.5" />
                 </button>
@@ -119,7 +119,7 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
                   <button
                     onClick={(e) => { e.stopPropagation(); onExportScene(scene); }}
                     className="size-7 flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
-                    title="导出场景"
+                    aria-label="导出场景"
                   >
                     <Upload className="size-3.5" />
                   </button>
@@ -127,7 +127,7 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
                 <button
                   onClick={(e) => { e.stopPropagation(); onDeleteScene(scene); }}
                   className="size-7 flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-destructive transition-colors"
-                  title="删除场景"
+                  aria-label="删除场景"
                 >
                   <Trash2 className="size-3.5" />
                 </button>
@@ -159,7 +159,7 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
           <aside className="relative w-72 h-full bg-background border-r flex flex-col">
             <div className="flex items-center justify-between p-3 border-b">
               <span className="text-sm font-medium">菜单</span>
-              <button onClick={onMobileClose} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+              <button onClick={onMobileClose} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="关闭菜单">
                 <X className="h-5 w-5" />
               </button>
             </div>

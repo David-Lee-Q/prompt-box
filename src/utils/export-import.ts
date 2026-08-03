@@ -1,6 +1,7 @@
 import { db } from '@/db';
 import type { ExportData, Scene, Prompt } from '@/types';
 import { generateId } from '@/utils/helpers';
+import { extractVariables } from '@/utils/variables';
 import { PUBLIC_USER_ID } from '@/constants';
 
 type ConflictStrategy = 'overwrite' | 'skip' | 'rename';
@@ -12,6 +13,65 @@ export interface ImportResult {
   conflicts: { type: 'scene' | 'prompt'; id: string; name: string }[];
 }
 
+export async function importMarkdownAsPrompt(
+  fileName: string,
+  content: string,
+  userId?: string
+): Promise<ImportResult & { promptId?: string }> {
+  const name = fileName.replace(/\.md$/i, '').trim() || '未命名提示词';
+
+  let scene = await db.scenes.orderBy('sortOrder').first();
+  if (userId && scene && scene.userId !== userId && scene.userId !== PUBLIC_USER_ID) {
+    scene = undefined;
+  }
+  if (!scene) {
+    const now = Date.now();
+    const sceneId = generateId();
+    await db.scenes.add({
+      id: sceneId,
+      userId: userId ?? PUBLIC_USER_ID,
+      name: '导入',
+      description: '从文件导入的提示词',
+      color: '#6366f1',
+      icon: 'download',
+      sortOrder: 999,
+      createdAt: now,
+      updatedAt: now,
+    });
+    scene = await db.scenes.get(sceneId);
+  }
+  if (!scene) return { success: false, message: '没有可用的场景', stats: { scenes: 0, prompts: 0, versions: 0 }, conflicts: [] };
+
+  const now = Date.now();
+  const id = generateId();
+  const variables = extractVariables(content);
+
+  console.log('[importMarkdown] fileName:', fileName, 'name:', name, 'contentLen:', content.length, 'scene:', scene.id, 'sceneName:', scene.name);
+
+  await db.prompts.add({
+    id,
+    userId: userId ?? PUBLIC_USER_ID,
+    sceneId: scene.id,
+    name,
+    content,
+    isStarred: false,
+    currentVersionId: '',
+    tags: [],
+    notes: '',
+    variables,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return {
+    success: true,
+    message: `导入成功：已创建提示词「${name}」`,
+    stats: { scenes: 1, prompts: 1, versions: 0 },
+    conflicts: [],
+    promptId: id,
+  };
+}
+
 function downloadJSON(data: ExportData, prefix: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: 'application/json',
@@ -20,7 +80,9 @@ function downloadJSON(data: ExportData, prefix: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = `${prefix}-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 

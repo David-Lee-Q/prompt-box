@@ -10,8 +10,10 @@ export async function getScenes(userId: string): Promise<Scene[]> {
     .sortBy('sortOrder');
 }
 
-export async function getScene(id: string): Promise<Scene | undefined> {
-  return db.scenes.get(id);
+export async function getScene(id: string, userId?: string): Promise<Scene | undefined> {
+  const scene = await db.scenes.get(id);
+  if (scene && userId && scene.userId !== userId && scene.userId !== PUBLIC_USER_ID) return undefined;
+  return scene;
 }
 
 export async function createScene(data: Omit<Scene, 'id' | 'createdAt' | 'updatedAt'>, userId: string): Promise<Scene> {
@@ -31,7 +33,12 @@ export async function updateScene(id: string, data: Partial<Omit<Scene, 'id' | '
   await db.scenes.update(id, { ...data, updatedAt: Date.now() });
 }
 
-export async function deleteScene(id: string): Promise<void> {
+export async function deleteScene(id: string, userId?: string): Promise<void> {
+  if (userId) {
+    const scene = await db.scenes.get(id);
+    if (!scene) return;
+    if (scene.userId !== userId) throw new Error('无权删除此场景');
+  }
   await db.transaction('rw', db.scenes, db.prompts, db.versions, async () => {
     const promptsToDelete = await db.prompts.where('sceneId').equals(id).toArray();
     const promptIds = promptsToDelete.map((p) => p.id);

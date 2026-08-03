@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { FileText, Plus, LayoutGrid, List, Star, Tag } from 'lucide-react';
+import { FileText, Plus, LayoutGrid, List, Star, Tag, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import PromptCard from './PromptCard';
@@ -12,12 +12,13 @@ interface PromptListProps {
   onNewPrompt: () => void;
   onPromptClick: (id: string) => void;
   onToggleStar: (id: string, isStarred: boolean) => void;
+  onDeletePrompt: (id: string) => void;
 }
 
 type SortKey = 'name' | 'updatedAt' | 'version';
 type SortDir = 'asc' | 'desc';
 
-export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }: PromptListProps) {
+export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar, onDeletePrompt }: PromptListProps) {
   const { prompts, activeSceneId, scenes, isLoading, isStarredFilter, viewMode, setViewMode } = useAppStore();
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -150,7 +151,7 @@ export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }:
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort('updatedAt')}>
                   更新时间{sortIcon('updatedAt')}
                 </TableHead>
-                <TableHead className="w-16 whitespace-nowrap">收藏</TableHead>
+                <TableHead className="w-24 whitespace-nowrap">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -191,13 +192,29 @@ export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar }:
                     {formatDate(prompt.updatedAt)}
                   </TableCell>
                   <TableCell>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onToggleStar(prompt.id, !prompt.isStarred); }}
-                      className="p-1 rounded hover:bg-accent transition-colors"
-                      title={prompt.isStarred ? '取消收藏' : '收藏'}
-                    >
-                      <Star className={`h-3.5 w-3.5 ${prompt.isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
-                    </button>
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onPromptClick(prompt.id); }}
+                        className="p-1 rounded hover:bg-accent transition-colors"
+                        title="编辑"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onToggleStar(prompt.id, !prompt.isStarred); }}
+                        className="p-1 rounded hover:bg-accent transition-colors"
+                        title={prompt.isStarred ? '取消收藏' : '收藏'}
+                      >
+                        <Star className={`h-3.5 w-3.5 ${prompt.isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDeletePrompt(prompt.id); }}
+                        className="p-1 rounded hover:bg-accent transition-colors hover:text-destructive"
+                        title="删除"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

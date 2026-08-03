@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import useAppStore from '@/store/useAppStore';
 import useSettingsStore from '@/store/settingsStore';
 import useAuthStore, { getSessionUser } from '@/store/authStore';
-import { exportAllData, importData, validateImportData, detectConflicts } from '@/utils/export-import';
+import { exportAllData, importData, importMarkdownAsPrompt, validateImportData, detectConflicts } from '@/utils/export-import';
 import { toast } from '@/hooks/use-toast';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 
@@ -23,6 +23,7 @@ export default function Header({ onNewPrompt }: HeaderProps) {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [importConflict, setImportConflict] = useState<{ conflicts: Array<{ type: string; name: string }>; text: string } | null>(null);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -52,6 +53,25 @@ export default function Header({ onNewPrompt }: HeaderProps) {
     try {
       const text = await file.text();
 
+      const user = getSessionUser();
+
+      // .md files are imported as a new prompt
+      if (file.name.toLowerCase().endsWith('.md')) {
+        const result = await importMarkdownAsPrompt(file.name, text, user?.id);
+        if (result.success) {
+          toast({ title: '导入成功', variant: 'success', description: result.message });
+          await loadAll();
+          await loadPrompts();
+          if (result.promptId) {
+            navigate(`/prompts/${result.promptId}`);
+          }
+        } else {
+          toast({ title: '导入失败', variant: 'destructive', description: result.message });
+        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
       // Validate first
       const validation = validateImportData(text);
       if (validation.error) {
@@ -66,39 +86,16 @@ export default function Header({ onNewPrompt }: HeaderProps) {
       let strategy: 'overwrite' | 'skip' | 'rename' = 'skip';
 
       if (conflicts.length > 0) {
-        const conflictMsg = conflicts
-          .slice(0, 5)
-          .map((c) => `${c.type === 'scene' ? '场景' : '提示词'}「${c.name}」`)
-          .join('、');
-        const suffix = conflicts.length > 5 ? `等 ${conflicts.length} 项` : '';
-
-        const strategyStr = window.prompt(
-          `发现 ${conflicts.length} 个冲突（${conflictMsg}${suffix}），请选择处理方式：\n` +
-          '输入 1 — 跳过冲突（保留本地数据）\n' +
-          '输入 2 — 覆盖冲突（以导入数据为准）\n' +
-          '输入 3 — 重命名（为导入数据生成新 ID）',
-          '1'
-        );
-        if (strategyStr === '1') strategy = 'skip';
-        else if (strategyStr === '2') strategy = 'overwrite';
-        else if (strategyStr === '3') strategy = 'rename';
-        else {
-          toast({ title: '已取消导入' });
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
+        setImportConflict({ conflicts, text });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
       }
 
-      const user = getSessionUser();
       const result = await importData(text, strategy, user?.id);
       if (result.success) {
         toast({
           title: '导入成功',
-          description: `导入了 ${result.stats.scenes} 个场景、${result.stats.prompts} 个提示词${
-            result.conflicts.length > 0
-              ? `（${result.conflicts.length} 个冲突已${strategy === 'skip' ? '跳过' : strategy === 'rename' ? '重命名' : '覆盖'}）`
-              : ''
-          }`,
+          description: `导入了 ${result.stats.scenes} 个场景、${result.stats.prompts} 个提示词`,
           variant: 'success',
         });
         await loadAll();
@@ -111,6 +108,29 @@ export default function Header({ onNewPrompt }: HeaderProps) {
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleImportResolve = async (strategy: 'overwrite' | 'skip' | 'rename') => {
+    if (!importConflict) return;
+    const { text, conflicts } = importConflict;
+    setImportConflict(null);
+    const user = getSessionUser();
+    const result = await importData(text, strategy, user?.id);
+    if (result.success) {
+      toast({
+        title: '导入成功',
+        description: `导入了 ${result.stats.scenes} 个场景、${result.stats.prompts} 个提示词${
+          conflicts.length > 0
+            ? `（${conflicts.length} 个冲突已${strategy === 'skip' ? '跳过' : strategy === 'rename' ? '重命名' : '覆盖'}）`
+            : ''
+        }`,
+        variant: 'success',
+      });
+      await loadAll();
+      await loadPrompts();
+    } else {
+      toast({ title: '导入失败', variant: 'destructive', description: result.message });
+    }
   };
 
   return (
@@ -252,8 +272,37 @@ export default function Header({ onNewPrompt }: HeaderProps) {
         <Button variant="ghost" size="icon" onClick={() => useAuthStore.getState().logout()} title="退出登录">
           <LogOut className="h-4 w-4" />
         </Button>
-        <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+        <input ref={fileInputRef} type="file" accept=".json,.md" onChange={handleImport} className="hidden" />
       </div>
+
+      {importConflict && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setImportConflict(null)}>
+          <div className="bg-background border rounded-lg shadow-lg p-4 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold mb-2">发现 {importConflict.conflicts.length} 个冲突</h3>
+            <ul className="text-xs text-muted-foreground mb-3 max-h-24 overflow-y-auto space-y-1">
+              {importConflict.conflicts.slice(0, 10).map((c, i) => (
+                <li key={i}>{(c as { type: string; name: string }).type === 'scene' ? '场景' : '提示词'}「{(c as { type: string; name: string }).name}」</li>
+              ))}
+              {importConflict.conflicts.length > 10 && <li className="text-muted-foreground/60">...等 {importConflict.conflicts.length} 项</li>}
+            </ul>
+            <p className="text-xs text-muted-foreground mb-3">请选择处理方式：</p>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => handleImportResolve('skip')} className="w-full text-left px-3 py-2 rounded-md text-sm border hover:bg-accent transition-colors">
+                跳过冲突（保留本地数据）
+              </button>
+              <button onClick={() => handleImportResolve('overwrite')} className="w-full text-left px-3 py-2 rounded-md text-sm border hover:bg-accent transition-colors">
+                覆盖冲突（以导入数据为准）
+              </button>
+              <button onClick={() => handleImportResolve('rename')} className="w-full text-left px-3 py-2 rounded-md text-sm border hover:bg-accent transition-colors">
+                重命名（为导入数据生成新 ID）
+              </button>
+              <button onClick={() => setImportConflict(null)} className="w-full text-center px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground transition-colors">
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { readFileSync } from 'fs'
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
 function apiProxyPlugin() {
   return {
@@ -104,6 +107,7 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       global: 'globalThis',
+      __APP_VERSION__: JSON.stringify(pkg.version),
       ...(isExtension ? { 'import.meta.env.VITE_IS_EXTENSION': JSON.stringify('true') } : {}),
     },
     publicDir: isExtension ? 'public-ext' : 'public',

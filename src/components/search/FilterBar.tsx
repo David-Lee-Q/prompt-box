@@ -8,11 +8,18 @@ export default function FilterBar() {
   const { filterTag, setFilterTag, dateRange, setDateRange, loadPrompts } = useAppStore();
   const currentUser = useAuthStore((s) => s.currentUser);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [tagsError, setTagsError] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
-      getAllTags(currentUser.id).then(setAllTags);
+      setTagsLoading(true);
+      setTagsError(null);
+      getAllTags(currentUser.id).then(setAllTags).catch(() => {
+        setTagsError('标签加载失败');
+        setAllTags([]);
+      }).finally(() => setTagsLoading(false));
     }
   }, [currentUser]);
 
@@ -70,7 +77,9 @@ export default function FilterBar() {
 
       {/* Filter chips */}
       <div className="flex flex-wrap gap-1.5">
-        {allTags.map((tag) => (
+        {tagsLoading && <span className="px-2 py-0.5 text-xs text-muted-foreground">加载中...</span>}
+        {tagsError && <span className="px-2 py-0.5 text-xs text-destructive">{tagsError}</span>}
+        {!tagsLoading && !tagsError && allTags.map((tag) => (
           <button
             key={tag}
             onClick={() => handleTagClick(tag)}

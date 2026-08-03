@@ -50,7 +50,7 @@ export default function StatusBar() {
     })();
   }, []);
 
-  const usagePercent = storageInfo.quota
+  const usagePercent = storageInfo.quota && storageInfo.quota > 0
     ? Math.min(100, Math.round((storageInfo.used / storageInfo.quota) * 100))
     : 0;
 
@@ -112,7 +112,7 @@ export default function StatusBar() {
       </div>
 
       <span className="flex items-center gap-1.5 text-muted-foreground/60">
-        <span className="select-none">v2.2.0</span>
+        <span className="select-none">v{__APP_VERSION__}</span>
         <span className="text-muted-foreground/30">|</span>
         <User className="h-3 w-3" />
         Builder：dorstar

@@ -82,3 +82,20 @@
 .prose svg text {
   font-family: system-ui, sans-serif;
 }
+.prose table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.prose caption {
+  caption-side: bottom;
+  text-align: center;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.5rem;
+}
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}

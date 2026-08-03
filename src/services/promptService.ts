@@ -18,15 +18,9 @@ export async function getPromptsByScene(sceneId: string, userId: string): Promis
     .sortBy('updatedAt');
 }
 
-export async function getPrompt(id: string): Promise<Prompt | undefined> {
+export async function getPrompt(id: string, userId?: string): Promise<Prompt | undefined> {
   const prompt = await db.prompts.get(id);
-  if (prompt?.variables?.length && typeof prompt.variables[0] === 'string') {
-    prompt.variables = (prompt.variables as unknown as string[]).map((name) => ({
-      name,
-      type: 'text' as const,
-    }));
-    await db.prompts.update(prompt.id, { variables: prompt.variables });
-  }
+  if (prompt && userId && prompt.userId !== userId) return undefined;
   return prompt;
 }
 
@@ -155,23 +149,55 @@ export async function savePrompt(
   });
 }
 
-export async function deletePrompt(id: string): Promise<void> {
+export async function deletePrompt(id: string, userId?: string): Promise<void> {
+  if (userId) {
+    const prompt = await db.prompts.get(id);
+    if (prompt && prompt.userId !== userId) throw new Error('无权删除此提示词');
+  }
   await db.transaction('rw', db.prompts, db.versions, async () => {
     await db.versions.where('promptId').equals(id).delete();
     await db.prompts.delete(id);
   });
 }
 
-export async function toggleStarPrompt(id: string, isStarred: boolean): Promise<void> {
+export async function toggleStarPrompt(id: string, isStarred: boolean, userId?: string): Promise<void> {
+  if (userId) {
+    const prompt = await db.prompts.get(id);
+    if (prompt && prompt.userId !== userId) throw new Error('无权操作');
+  }
   await db.prompts.update(id, { isStarred });
 }
 
-export async function updatePromptTags(id: string, tags: string[]): Promise<void> {
+export async function updatePromptTags(id: string, tags: string[], userId?: string): Promise<void> {
+  if (userId) {
+    const prompt = await db.prompts.get(id);
+    if (prompt && prompt.userId !== userId) throw new Error('无权更新标签');
+  }
   await db.prompts.update(id, { tags, updatedAt: Date.now() });
 }
 
-export async function updatePromptNotes(id: string, notes: string): Promise<void> {
+export async function updatePromptNotes(id: string, notes: string, userId?: string): Promise<void> {
+  if (userId) {
+    const prompt = await db.prompts.get(id);
+    if (prompt && prompt.userId !== userId) throw new Error('无权更新备注');
+  }
   await db.prompts.update(id, { notes, updatedAt: Date.now() });
+}
+
+export async function updatePromptScene(id: string, sceneId: string, userId?: string): Promise<void> {
+  if (userId) {
+    const prompt = await db.prompts.get(id);
+    if (prompt && prompt.userId !== userId) throw new Error('无权移动提示词');
+  }
+  await db.prompts.update(id, { sceneId, updatedAt: Date.now() });
+}
+
+export async function updatePromptCreateTime(id: string, createdAt: number, userId?: string): Promise<void> {
+  if (userId) {
+    const prompt = await db.prompts.get(id);
+    if (prompt && prompt.userId !== userId) throw new Error('无权操作');
+  }
+  await db.prompts.update(id, { createdAt });
 }
 
 export async function getAllTags(userId: string): Promise<string[]> {
@@ -192,10 +218,6 @@ export async function getPromptsByTag(tag: string, userId: string): Promise<Prom
     .filter((p) => matchUserId(userId, p.userId))
     .reverse()
     .sortBy('updatedAt');
-}
-
-export async function updatePromptScene(id: string, sceneId: string): Promise<void> {
-  await db.prompts.update(id, { sceneId, updatedAt: Date.now() });
 }
 
 export async function searchPrompts(query: string, userId: string): Promise<Prompt[]> {

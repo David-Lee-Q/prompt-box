@@ -2,7 +2,11 @@ import { db } from '@/db';
 import type { Version } from '@/types';
 import { compareVersions } from '@/utils/version';
 
-export async function getVersionsByPrompt(promptId: string): Promise<Version[]> {
+export async function getVersionsByPrompt(promptId: string, userId?: string): Promise<Version[]> {
+  if (userId) {
+    const prompt = await db.prompts.get(promptId);
+    if (!prompt || prompt.userId !== userId) return [];
+  }
   return db.versions
     .where('promptId')
     .equals(promptId)
@@ -10,8 +14,14 @@ export async function getVersionsByPrompt(promptId: string): Promise<Version[]> 
     .sortBy('createdAt');
 }
 
-export async function getVersion(id: string): Promise<Version | undefined> {
-  return db.versions.get(id);
+export async function getVersion(id: string, userId?: string): Promise<Version | undefined> {
+  const version = await db.versions.get(id);
+  if (!version) return undefined;
+  if (userId) {
+    const prompt = await db.prompts.get(version.promptId);
+    if (prompt && prompt.userId !== userId) return undefined;
+  }
+  return version;
 }
 
 export async function rollbackToVersion(promptId: string, versionId: string, userId?: string) {
@@ -35,7 +45,14 @@ export async function rollbackToVersion(promptId: string, versionId: string, use
   });
 }
 
-export async function deleteVersion(id: string): Promise<void> {
+export async function deleteVersion(id: string, userId?: string): Promise<void> {
+  if (userId) {
+    const version = await db.versions.get(id);
+    if (version) {
+      const prompt = await db.prompts.get(version.promptId);
+      if (prompt && prompt.userId !== userId) throw new Error('无权删除此版本');
+    }
+  }
   await db.transaction('rw', db.versions, async () => {
     const version = await db.versions.get(id);
     if (!version) return;
@@ -46,11 +63,15 @@ export async function deleteVersion(id: string): Promise<void> {
   });
 }
 
-export async function toggleVersionProtection(id: string, isProtected: boolean): Promise<void> {
+export async function toggleVersionProtection(id: string, isProtected: boolean, userId?: string): Promise<void> {
   const version = await db.versions.get(id);
   if (!version) return;
   if (version.isInitial) {
     throw new Error('初始版本不可修改保护状态');
+  }
+  if (userId) {
+    const prompt = await db.prompts.get(version.promptId);
+    if (prompt && prompt.userId !== userId) throw new Error('无权修改保护状态');
   }
   await db.versions.update(id, { isProtected });
 }

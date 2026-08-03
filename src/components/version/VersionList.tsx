@@ -115,7 +115,7 @@ export default function VersionList({
                   {!isCurrent && (
                     <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
                       <button
-                        onClick={async () => { await onRollback(v.id); await loadVersions(); }}
+                        onClick={async (e) => { e.stopPropagation(); await onRollback(v.id); await loadVersions(); }}
                         className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors active:scale-[0.95]"
                         title="回滚到此版本"
                       >
@@ -123,7 +123,7 @@ export default function VersionList({
                         回滚
                       </button>
                       <button
-                        onClick={async () => { await onToggleProtection(v.id, !v.isProtected); await loadVersions(); }}
+                        onClick={async (e) => { e.stopPropagation(); await onToggleProtection(v.id, !v.isProtected); await loadVersions(); }}
                         className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors active:scale-[0.95]"
                         title={v.isProtected ? '取消保护' : '保护此版本'}
                       >
@@ -136,7 +136,7 @@ export default function VersionList({
                       </button>
                       {!v.isInitial && (
                         <button
-                          onClick={async () => { await onDelete(v.id); await loadVersions(); }}
+                          onClick={async (e) => { e.stopPropagation(); await onDelete(v.id); await loadVersions(); }}
                           className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-destructive transition-colors active:scale-[0.95]"
                           title="删除版本"
                         >

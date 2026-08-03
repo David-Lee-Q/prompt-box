@@ -3,16 +3,32 @@ import type { Version } from '@/types';
 
 export async function setVersionScore(
   versionId: string,
-  score: number | null
+  score: number | null,
+  userId?: string
 ): Promise<void> {
+  if (userId) {
+    const version = await db.versions.get(versionId);
+    if (version) {
+      const prompt = await db.prompts.get(version.promptId);
+      if (prompt && prompt.userId !== userId) throw new Error('无权评分');
+    }
+  }
   await db.versions.update(versionId, { score: score ?? undefined });
 }
 
 export async function setVersionTestOutput(
   versionId: string,
   testOutput: string,
-  modelInfo: string
+  modelInfo: string,
+  userId?: string
 ): Promise<void> {
+  if (userId) {
+    const version = await db.versions.get(versionId);
+    if (version) {
+      const prompt = await db.prompts.get(version.promptId);
+      if (prompt && prompt.userId !== userId) throw new Error('无权设置测试输出');
+    }
+  }
   await db.versions.update(versionId, { testOutput, modelInfo });
 }
 
