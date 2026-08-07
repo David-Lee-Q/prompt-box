@@ -44,6 +44,9 @@ export default function AISettings() {
   const [testing, setTesting] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
+  const editingProvider = providers.find((p) => p.id === editingId) ?? null;
+  const isEditingBuiltIn = !!editingProvider?.builtIn;
+
   useEffect(() => {
     if (!showSettings) {
       setEditingId(null);
@@ -52,9 +55,16 @@ export default function AISettings() {
   }, [showSettings]);
 
   const startEdit = (p: ProviderConfig) => {
+    if (p.builtIn) return;
     setAdding(false);
     setEditingId(p.id);
-    setForm({ name: p.name, format: p.format, apiKey: p.apiKey, baseUrl: p.baseUrl, model: p.model });
+    setForm({
+      name: p.name,
+      format: p.format,
+      apiKey: p.builtIn ? '' : p.apiKey,
+      baseUrl: p.baseUrl,
+      model: p.model,
+    });
   };
 
   const startAdd = () => {
@@ -75,6 +85,11 @@ export default function AISettings() {
     }
     const trimmed = { ...form, apiKey: form.apiKey.trim(), baseUrl: form.baseUrl.trim() };
     if (editingId) {
+      const original = providers.find((p) => p.id === editingId);
+      // Built-in model: empty apiKey means keep existing (encrypted) key unchanged
+      if (original?.builtIn && !trimmed.apiKey) {
+        delete (trimmed as Partial<ProviderConfig>).apiKey;
+      }
       updateProvider(editingId, trimmed);
       toast({ title: '已更新', variant: 'success' });
       setEditingId(null);
@@ -92,7 +107,11 @@ export default function AISettings() {
   };
 
   const handleTest = async () => {
-    if (!form.apiKey.trim()) {
+    // Built-in model test uses the in-memory (decrypted) key when the form field is untouched
+    const testApiKey = isEditingBuiltIn && !form.apiKey.trim()
+      ? (editingProvider?.apiKey ?? '')
+      : form.apiKey.trim();
+    if (!testApiKey) {
       toast({ title: '请先输入 API Key', variant: 'destructive' });
       return;
     }
@@ -136,7 +155,7 @@ export default function AISettings() {
         id: testId,
         name: 'Test',
         format: form.format,
-        apiKey: form.apiKey.trim(),
+        apiKey: testApiKey,
         model: form.model.trim(),
         baseUrl: form.baseUrl.trim() || '',
       });
@@ -173,31 +192,40 @@ export default function AISettings() {
               {providers.map((p) => (
                 <div key={p.id}>
                   <div
-                    onClick={() => setSelectedId(p.id)}
-                    className={`flex items-center justify-between rounded-lg border px-3 py-2 transition-colors cursor-pointer ${
+                    onClick={() => !p.builtIn && setSelectedId(p.id)}
+                    className={`flex items-center justify-between rounded-lg border px-3 py-2 transition-colors ${
                       activeId === p.id
                         ? 'border-primary bg-primary/5'
                         : selectedId === p.id
                           ? 'border-muted-foreground/30 bg-accent/30'
-                          : 'border-border hover:bg-accent/50'
-                    } ${editingId === p.id ? 'ring-1 ring-primary' : ''}`}
+                          : 'border-border'
+                    } ${editingId === p.id ? 'ring-1 ring-primary' : ''} ${p.builtIn ? 'cursor-default' : 'cursor-pointer hover:bg-accent/50'}`}
                   >
                     <div className="flex-1 min-w-0 overflow-hidden">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium truncate">{p.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {p.format === 'openai' ? 'OpenAI' : 'Anthropic'}
-                        </span>
+                        {p.builtIn && (
+                          <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                            内置
+                          </span>
+                        )}
+                        {!p.builtIn && (
+                          <span className="text-xs text-muted-foreground">
+                            {p.format === 'openai' ? 'OpenAI' : 'Anthropic'}
+                          </span>
+                        )}
                         {activeId === p.id && (
                           <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
                             默认
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        <div className="truncate">{p.model || '未设置模型'}</div>
-                        {p.baseUrl && <div className="text-[10px] break-all">{p.baseUrl}</div>}
-                      </div>
+                      {!p.builtIn && (
+                        <div className="text-xs text-muted-foreground">
+                          <div className="truncate">{p.model || '未设置模型'}</div>
+                          {p.baseUrl && <div className="text-[10px] break-all">{p.baseUrl}</div>}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                       {activeId !== p.id && p.apiKey && (
@@ -210,12 +238,16 @@ export default function AISettings() {
                           <Check className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); startEdit(p); }} title="编辑">
-                        <Settings className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} title="删除">
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                      </Button>
+                      {!p.builtIn && (
+                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); startEdit(p); }} title="编辑">
+                          <Settings className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {!p.builtIn && (
+                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }} title="删除">
+                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {/* Inline edit form */}
@@ -259,18 +291,25 @@ export default function AISettings() {
                             type={showKey ? 'text' : 'password'}
                             value={form.apiKey}
                             onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
-                            placeholder="sk-..."
+                            placeholder={isEditingBuiltIn ? '已加密，留空保持不变' : 'sk-...'}
                             className="pr-8"
                           />
-                          <button
-                            type="button"
-                            onClick={() => setShowKey(!showKey)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            tabIndex={-1}
-                          >
-                            {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
+                          {!isEditingBuiltIn && (
+                            <button
+                              type="button"
+                              onClick={() => setShowKey(!showKey)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              tabIndex={-1}
+                            >
+                              {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          )}
                         </div>
+                        {isEditingBuiltIn && (
+                          <p className="text-[10px] text-muted-foreground">
+                            内置模型密钥已加密存储，出于安全考虑不回显明文。留空保存将保留原密钥。
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="edit-model">模型 ID</Label>

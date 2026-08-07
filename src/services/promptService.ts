@@ -20,7 +20,7 @@ export async function getPromptsByScene(sceneId: string, userId: string): Promis
 
 export async function getPrompt(id: string, userId?: string): Promise<Prompt | undefined> {
   const prompt = await db.prompts.get(id);
-  if (prompt && userId && prompt.userId !== userId) return undefined;
+  if (prompt && userId && !matchUserId(userId, prompt.userId)) return undefined;
   return prompt;
 }
 

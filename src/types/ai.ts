@@ -7,6 +7,8 @@ export interface ProviderConfig {
   apiKey: string;
   baseUrl: string;
   model: string;
+  /** 内置模型标识：内置模型(系统预置)的 apiKey 加密存储，用户自定义 provider 不加密 */
+  builtIn?: boolean;
 }
 
 export interface AIProviderConfig {
@@ -15,6 +17,7 @@ export interface AIProviderConfig {
   apiKey: string;
   baseUrl?: string;
   model: string;
+  builtIn?: boolean;
 }
 
 export interface AISettings {

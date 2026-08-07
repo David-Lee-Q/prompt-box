@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import DOMPurify from 'dompurify';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -102,6 +106,14 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   const { hasVariables } = useVariables(content);
   const [editorHeight, setEditorHeight] = useState(300);
   const [isResizingEditor, setIsResizingEditor] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const fn = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', fn);
+    return () => mq.removeEventListener('change', fn);
+  }, []);
   const isReadyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -366,41 +378,11 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
             <span>{formatDate(updatedDate)}</span>
           </span>
         )}
-        <div className="flex items-center gap-1.5 ml-auto">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap">场景：</Label>
-          <div className="relative">
-            <select
-              value={prompt ? prompt.sceneId : (createSceneId ?? '')}
-              onChange={(e) => {
-                if (prompt?.id) {
-                  handleSceneChange(e.target.value);
-                } else {
-                  setCreateSceneId(e.target.value);
-                }
-              }}
-              className="rounded-md border border-input bg-background pl-2.5 pr-7 py-1.5 text-xs appearance-none cursor-pointer hover:border-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
-            >
-              {scenes.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <svg
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
-        </div>
       </div>
 
-      <div className="flex-1 space-y-4">
-        <div className="space-y-2">
+      <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
+        {/* 左侧：内容编辑区（2/3） */}
+        <div className="flex-[2] min-w-0 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <Label className="font-bold">提示词内容</Label>
             <div className="flex items-center gap-1">
@@ -417,18 +399,22 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
               {toolbarActions}
             </div>
           </div>
-          <div className="border rounded-md overflow-hidden bg-background">
+          <div className="flex-1 min-h-0 border rounded-md overflow-hidden bg-background">
             {previewFormat === 'html' ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-y-auto" style={{ minHeight: `${editorHeight}px`, maxHeight: `${editorHeight}px` }} dangerouslySetInnerHTML={{ __html: content || readOnlyContent || '' }} />
+              <div className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-y-auto h-full" style={isDesktop ? undefined : { minHeight: `${editorHeight}px`, maxHeight: `${editorHeight}px` }}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                  {DOMPurify.sanitize(content || readOnlyContent || '')}
+                </ReactMarkdown>
+              </div>
             ) : (
               <CodeMirror
                 key={resolvedTheme}
-                style={{ fontSize: '14px' }}
+                style={{ fontSize: '14px', height: isDesktop ? '100%' : `${editorHeight}px` }}
                 value={content}
                 onChange={(val) => setContent(val)}
                 readOnly={readOnly}
                 extensions={[markdown(), json(), EditorView.lineWrapping, keymap.of([smartTab])]}
-                height={`${editorHeight}px`}
+                height={isDesktop ? '100%' : `${editorHeight}px`}
                 placeholder="在此输入提示词内容..."
                 theme={resolvedTheme === 'dark' ? oneDark : undefined}
                 indentWithTab={false}
@@ -440,7 +426,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
                 }}
               />
             )}
-            {!readOnly && (
+            {!readOnly && !isDesktop && (
               <div
                 onMouseDown={(e) => { e.preventDefault(); setIsResizingEditor(true); }}
                 className="h-2 cursor-row-resize bg-transparent hover:bg-primary/20 transition-colors rounded-b-md"
@@ -450,83 +436,111 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
           </div>
         </div>
 
-        {readOnly && readOnlyChangeLog && (
-          <div className="space-y-1.5">
-            <Label className="text-muted-foreground">更新说明</Label>
-            <p className="text-sm text-muted-foreground bg-muted/30 rounded-md p-3">{readOnlyChangeLog}</p>
-          </div>
-        )}
+        {/* 右侧：配置字段区（1/3） */}
+        <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-y-auto pb-1">
+          {readOnly && readOnlyChangeLog && (
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground">更新说明</Label>
+              <p className="text-sm text-muted-foreground bg-muted/30 rounded-md p-3">{readOnlyChangeLog}</p>
+            </div>
+          )}
 
-        {!readOnly && hasVariables && (
-          <VariableForm
-            template={content}
-            onCopy={async (rendered) => {
-              const ok = await copyToClipboard(rendered);
-              toast({ title: ok ? '已复制到剪贴板' : '复制失败', variant: ok ? 'success' : 'destructive' });
-            }}
-          />
-        )}
-
-        {showOptimize && (
-          <OptimizePanel
-            key={content}
-            content={content}
-            onApply={(optimized) => {
-              setContent(optimized);
-              setShowOptimize(false);
-            }}
-            onClose={() => setShowOptimize(false)}
-          />
-        )}
-
-        {!readOnly && (
-          <>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Label>标签</Label>
-                {tagSuggestions && (
-                  <TagRecommendation
-                    suggestions={tagSuggestions}
-                    onApply={async (selectedTags) => {
-                      const newTags = [...tags, ...selectedTags.filter((t) => !tags.includes(t))];
-                      setTags(newTags);
-                      if (prompt?.id) {
-                        await updatePromptTags(prompt.id, newTags);
-getAllTags(userId).then(setAllTags);
-                      }
-                      onDismissTags?.();
-                    }}
-                    onDismiss={() => onDismissTags?.()}
-                  />
-                )}
+          {!readOnly && (
+            <>
+              <div className="space-y-1.5">
+                <Label>所属场景</Label>
+                <select
+                  value={prompt ? prompt.sceneId : (createSceneId ?? '')}
+                  onChange={(e) => {
+                    if (prompt?.id) {
+                      handleSceneChange(e.target.value);
+                    } else {
+                      setCreateSceneId(e.target.value);
+                    }
+                  }}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {scenes.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <TagInput
-                tags={tags}
-                suggestions={allTags}
-                onChange={handleTagsChange}
-              />
-            </div>
+            </>
+          )}
 
-            <div className="space-y-2">
-              <Label>备注</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                className="min-h-[80px] text-sm"
-                placeholder="添加备注说明..."
-              />
-            </div>
+          {!readOnly && hasVariables && (
+            <VariableForm
+              template={content}
+              onCopy={async (rendered) => {
+                const ok = await copyToClipboard(rendered);
+                toast({ title: ok ? '已复制到剪贴板' : '复制失败', variant: ok ? 'success' : 'destructive' });
+              }}
+            />
+          )}
 
-            <div className="space-y-2">
-              <Label>更新说明（可选）</Label>
-              <Input
-                value={changeLog}
-                onChange={(e) => setChangeLog(e.target.value)}
-                placeholder="描述本次更新的内容..."
-              />
-            </div>
-          </>
-        )}
+          {showOptimize && (
+            <OptimizePanel
+              key={content}
+              content={content}
+              onApply={(optimized) => {
+                setContent(optimized);
+                setShowOptimize(false);
+              }}
+              onClose={() => setShowOptimize(false)}
+            />
+          )}
+
+          {!readOnly && (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Label>标签</Label>
+                  {tagSuggestions && (
+                    <TagRecommendation
+                      suggestions={tagSuggestions}
+                      onApply={async (selectedTags) => {
+                        const newTags = [...tags, ...selectedTags.filter((t) => !tags.includes(t))];
+                        setTags(newTags);
+                        if (prompt?.id) {
+                          await updatePromptTags(prompt.id, newTags);
+              getAllTags(userId).then(setAllTags);
+                        }
+                        onDismissTags?.();
+                      }}
+                      onDismiss={() => onDismissTags?.()}
+                    />
+                  )}
+                </div>
+                <TagInput
+                  tags={tags}
+                  suggestions={allTags}
+                  onChange={handleTagsChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>备注</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => handleNotesChange(e.target.value)}
+                  className="min-h-[80px] text-sm"
+                  placeholder="添加备注说明..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>更新说明（可选）</Label>
+                <Input
+                  value={changeLog}
+                  onChange={(e) => setChangeLog(e.target.value)}
+                  placeholder="描述本次更新的内容..."
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <GenerateDialog

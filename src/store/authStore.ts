@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { db } from '@/db';
 import type { User } from '@/types';
+import useSecretStore from './secretStore';
+import useSettingsStore from './settingsStore';
 
 const SESSION_KEY = 'ai-prompt-manager-session';
 
@@ -79,6 +81,8 @@ const useAuthStore = create<AuthStore>((set) => ({
       }
       const sessionUser = { id: user.id, username: user.username, createdAt: user.createdAt };
       localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
+      await useSecretStore.getState().unlock(password, user.salt);
+      await useSettingsStore.getState().loadSettings();
       set({ currentUser: sessionUser, isAuthenticated: true, isLoading: false });
       return null;
     } catch (err) {
@@ -116,6 +120,8 @@ const useAuthStore = create<AuthStore>((set) => ({
       await db.users.add(user);
       const sessionUser = { id: user.id, username: user.username, createdAt: user.createdAt };
       localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
+      await useSecretStore.getState().unlock(password, salt);
+      await useSettingsStore.getState().loadSettings();
       set({ currentUser: sessionUser, isAuthenticated: true, isLoading: false });
       return null;
     } catch {
@@ -126,11 +132,13 @@ const useAuthStore = create<AuthStore>((set) => ({
 
   logout: () => {
     clearSession();
+    useSecretStore.getState().lock();
     set({ currentUser: null, isAuthenticated: false });
   },
 
   checkSession: () => {
     const user = getSessionUser();
+    useSecretStore.getState().lock();
     set({ currentUser: user, isAuthenticated: !!user });
   },
 }));

@@ -81,7 +81,11 @@ export default function HomePage() {
         await updateScene(editingScene.id, data);
         toast({ title: '更新成功', description: `场景「${data.name}」已更新` });
       } else {
-        await createScene({ ...data, userId: currentUser!.id }, currentUser!.id);
+        if (!currentUser) {
+          toast({ title: '创建失败', variant: 'destructive', description: '未登录，无法创建场景' });
+          return;
+        }
+        await createScene({ ...data, userId: currentUser.id }, currentUser.id);
         toast({ title: '创建成功', description: `场景「${data.name}」已创建` });
       }
       await loadAll();

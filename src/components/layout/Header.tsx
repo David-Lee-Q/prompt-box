@@ -57,7 +57,12 @@ export default function Header({ onNewPrompt }: HeaderProps) {
 
       // .md files are imported as a new prompt
       if (file.name.toLowerCase().endsWith('.md')) {
-        const result = await importMarkdownAsPrompt(file.name, text, user?.id);
+        if (!user?.id) {
+          toast({ title: '导入失败', description: '请先登录后再导入文件', variant: 'destructive' });
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+        const result = await importMarkdownAsPrompt(file.name, text, user.id);
         if (result.success) {
           toast({ title: '导入成功', variant: 'success', description: result.message });
           await loadAll();

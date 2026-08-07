@@ -16,12 +16,16 @@ export interface ImportResult {
 export async function importMarkdownAsPrompt(
   fileName: string,
   content: string,
-  userId?: string
+  userId: string
 ): Promise<ImportResult & { promptId?: string }> {
+  if (!userId) {
+    return { success: false, message: '请先登录后再导入文件', stats: { scenes: 0, prompts: 0, versions: 0 }, conflicts: [] };
+  }
+
   const name = fileName.replace(/\.md$/i, '').trim() || '未命名提示词';
 
   let scene = await db.scenes.orderBy('sortOrder').first();
-  if (userId && scene && scene.userId !== userId && scene.userId !== PUBLIC_USER_ID) {
+  if (scene && scene.userId !== userId && scene.userId !== PUBLIC_USER_ID) {
     scene = undefined;
   }
   if (!scene) {
@@ -29,7 +33,7 @@ export async function importMarkdownAsPrompt(
     const sceneId = generateId();
     await db.scenes.add({
       id: sceneId,
-      userId: userId ?? PUBLIC_USER_ID,
+      userId: userId,
       name: '导入',
       description: '从文件导入的提示词',
       color: '#6366f1',
@@ -46,11 +50,9 @@ export async function importMarkdownAsPrompt(
   const id = generateId();
   const variables = extractVariables(content);
 
-  console.log('[importMarkdown] fileName:', fileName, 'name:', name, 'contentLen:', content.length, 'scene:', scene.id, 'sceneName:', scene.name);
-
   await db.prompts.add({
     id,
-    userId: userId ?? PUBLIC_USER_ID,
+    userId,
     sceneId: scene.id,
     name,
     content,

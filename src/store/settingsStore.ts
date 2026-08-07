@@ -2,8 +2,10 @@ import { create } from 'zustand';
 import type { AISettings, ProviderConfig } from '@/types/ai';
 import { getOrCreateProvider, setCurrentProvider, evictProvider } from '@/services/ai';
 import { generateId } from '@/utils/helpers';
+import useSecretStore, { encryptSecret, decryptSecret } from './secretStore';
 
 const SETTINGS_KEY = 'ai-prompt-manager-ai-settings';
+const ENC_PREFIX = 'enc:v1:';
 
 async function loadSettings(): Promise<AISettings | null> {
   try {
@@ -58,11 +60,45 @@ async function loadSettings(): Promise<AISettings | null> {
 
 async function persistSettings(settings: AISettings) {
   try {
-    if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
-      await chrome.storage.local.set({ [SETTINGS_KEY]: JSON.stringify(settings) });
+    // Built-in model apiKey is encrypted at rest; custom providers stay plaintext.
+    // Deep-copy so in-memory state keeps the decrypted plaintext.
+    const payload: AISettings = {
+      ...settings,
+      providers: settings.providers.map((p) => ({ ...p })),
+    };
+    if (payload.providers.length > 0) {
+      const hasKey = !!(await getSecretKey());
+      for (const p of payload.providers) {
+        if (!needsEncryption(p)) continue;
+        if (!hasKey) {
+          // No key in memory (not logged in): never persist plaintext — blank it out
+          p.apiKey = '';
+        } else if (!isEncryptedApiKey(p.apiKey)) {
+          p.apiKey = await encryptApiKey(p);
+        }
+      }
     }
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    const json = JSON.stringify(payload);
+    if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
+      await chrome.storage.local.set({ [SETTINGS_KEY]: json });
+    }
+    localStorage.setItem(SETTINGS_KEY, json);
   } catch { /* storage unavailable — non-critical */ }
+}
+
+/** Decrypt built-in model apiKey into in-memory settings for AI calls. */
+async function hydrateSettings(raw: AISettings | null): Promise<AISettings | null> {
+  if (!raw) return null;
+  const hydrated: AISettings = {
+    ...raw,
+    providers: await Promise.all(
+      raw.providers.map(async (p) => ({
+        ...p,
+        apiKey: needsEncryption(p) ? await decryptApiKey(p) : p.apiKey,
+      }))
+    ),
+  };
+  return hydrated;
 }
 
 function getActiveProvider(settings: AISettings | null): ProviderConfig | null {
@@ -70,6 +106,38 @@ function getActiveProvider(settings: AISettings | null): ProviderConfig | null {
     return settings?.providers?.[0] ?? null;
   }
   return settings.providers.find((p) => p.id === settings.activeProviderId) ?? settings.providers[0] ?? null;
+}
+
+async function getSecretKey(): Promise<CryptoKey | null> {
+  return useSecretStore.getState().key;
+}
+
+function isEncryptedApiKey(value: string): boolean {
+  return value.startsWith(ENC_PREFIX);
+}
+
+async function encryptApiKey(provider: ProviderConfig): Promise<string> {
+  const key = await getSecretKey();
+  if (!key) return provider.apiKey;
+  if (isEncryptedApiKey(provider.apiKey)) return provider.apiKey;
+  const encrypted = await encryptSecret(provider.apiKey, key);
+  return ENC_PREFIX + encrypted;
+}
+
+async function decryptApiKey(provider: ProviderConfig): Promise<string> {
+  const key = await getSecretKey();
+  if (!isEncryptedApiKey(provider.apiKey)) return provider.apiKey;
+  if (!key) return '';
+  try {
+    return await decryptSecret(provider.apiKey.slice(ENC_PREFIX.length), key);
+  } catch {
+    return '';
+  }
+}
+
+/** 仅加密内置模型的 apiKey（builtIn: true），自定义 provider 保持明文 */
+function needsEncryption(provider: ProviderConfig): boolean {
+  return !!provider.builtIn;
 }
 
 interface SettingsStore {
@@ -96,16 +164,20 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   loadSettings: async () => {
     const saved = await loadSettings();
-    const active = getActiveProvider(saved);
+    const hydrated = await hydrateSettings(saved);
+    const active = getActiveProvider(hydrated);
     if (active?.apiKey) {
+      // Evict stale cached provider so the decrypted key takes effect
+      evictProvider(active.id);
       setCurrentProvider(getOrCreateProvider(active), active.id);
     }
-    set({ settings: saved, isConfigured: !!(active?.apiKey), activeProvider: active });
+    set({ settings: hydrated, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
 
   saveSettings: async (s: AISettings) => {
-    await persistSettings(s);
-    const active = getActiveProvider(s);
+    const hydrated = (await hydrateSettings(s)) ?? s;
+    await persistSettings(hydrated);
+    const active = getActiveProvider(hydrated);
     if (active?.apiKey) {
       const prev = get().activeProvider;
       if (prev && prev.id === active.id) {
@@ -113,7 +185,7 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
       }
       setCurrentProvider(getOrCreateProvider(active), active.id);
     }
-    set({ settings: s, isConfigured: !!(active?.apiKey), activeProvider: active });
+    set({ settings: hydrated, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
 
   addProvider: async (p: ProviderConfig) => {
@@ -123,10 +195,12 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
       activeProviderId: s.activeProviderId ?? p.id,
     };
     await persistSettings(next);
+    const hydrated = await hydrateSettings(next);
+    const active = getActiveProvider(hydrated);
     if (!s.activeProviderId && p.apiKey) {
       setCurrentProvider(getOrCreateProvider(p), p.id);
     }
-    set({ settings: next, isConfigured: true, activeProvider: p });
+    set({ settings: hydrated, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
 
   updateProvider: async (id: string, partial: Partial<ProviderConfig>) => {
@@ -137,12 +211,13 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
       providers: s.providers.map((p) => (p.id === id ? { ...p, ...partial } : p)),
     };
     await persistSettings(next);
+    const hydrated = await hydrateSettings(next);
     evictProvider(id);
-    const active = getActiveProvider(next);
+    const active = getActiveProvider(hydrated);
     if (active?.apiKey) {
       setCurrentProvider(getOrCreateProvider(active), active.id);
     }
-    set({ settings: next, isConfigured: !!(active?.apiKey), activeProvider: active });
+    set({ settings: hydrated, isConfigured: !!(active?.apiKey), activeProvider: active });
   },
 
   removeProvider: async (id: string) => {
@@ -155,13 +230,14 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     };
     await persistSettings(next);
     evictProvider(id);
-    const active = getActiveProvider(next);
+    const hydrated = await hydrateSettings(next);
+    const active = getActiveProvider(hydrated);
     if (active?.apiKey) {
       setCurrentProvider(getOrCreateProvider(active), active.id);
     } else {
       set({ isConfigured: false, activeProvider: null });
     }
-    set({ settings: next, activeProvider: active });
+    set({ settings: hydrated, activeProvider: active });
   },
 
   setActiveProvider: async (id: string) => {
@@ -169,11 +245,12 @@ const useSettingsStore = create<SettingsStore>((set, get) => ({
     if (!s) return;
     const next = { ...s, activeProviderId: id };
     await persistSettings(next);
-    const active = s.providers.find((p) => p.id === id);
+    const hydrated = await hydrateSettings(next);
+    const active = getActiveProvider(hydrated);
     if (active?.apiKey) {
       setCurrentProvider(getOrCreateProvider(active), active.id);
     }
-    set({ settings: next, isConfigured: !!(active?.apiKey), activeProvider: active ?? null });
+    set({ settings: hydrated, isConfigured: !!(active?.apiKey), activeProvider: active ?? null });
   },
 
   clearSettings: async () => {
