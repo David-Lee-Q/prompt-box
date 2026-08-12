@@ -179,7 +179,7 @@ export default function AISettings() {
 
   return (
     <Dialog open={showSettings} onOpenChange={setShowSettings}>
-      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col">
         <DialogHeader>
           <DialogTitle>AI 设置</DialogTitle>
           <DialogDescription>管理多个 AI 提供商，一键切换用于对比</DialogDescription>

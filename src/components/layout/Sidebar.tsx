@@ -156,7 +156,7 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={onMobileClose} />
-          <aside className="relative w-72 h-full bg-background border-r flex flex-col">
+          <aside className="relative w-72 h-full bg-background border-r flex flex-col pb-safe">
             <div className="flex items-center justify-between p-3 border-b">
               <span className="text-sm font-medium">菜单</span>
               <button onClick={onMobileClose} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="关闭菜单">

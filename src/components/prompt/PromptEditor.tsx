@@ -321,19 +321,19 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
           )}
         </div>
       )}
-      <div className="flex items-center gap-2 mb-4">
-        <Button variant="ghost" size="icon" onClick={onBack} title="返回">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <Button variant="ghost" size="icon" onClick={onBack} title="返回" className="flex-shrink-0">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           readOnly={readOnly}
-          className="text-lg font-bold border-0 bg-transparent focus-visible:ring-0 px-0"
+          className="text-lg font-bold border-0 bg-transparent focus-visible:ring-0 px-0 min-w-[120px] flex-1"
           placeholder="提示词名称"
         />
         {!readOnly && (
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
             {content && (
               <Button
                 size="sm"

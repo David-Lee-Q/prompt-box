@@ -146,8 +146,8 @@ export default function Header({ onNewPrompt }: HeaderProps) {
           className="flex items-center gap-1.5 text-base sm:text-lg font-bold text-primary whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity"
           title="返回首页"
         >
-          <img src="/AI.svg" alt="AI" className="h-5 w-5 sm:h-6 sm:w-6" />
-          Prompt Manager
+          <img src="/AI.svg" alt="AI" className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+          <span className="truncate">Prompt Manager</span>
         </h1>
       </div>
 

@@ -1,1 +1,29 @@
-<?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1780642993609" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="15867" xmlns:xlink="http://www.w3.org/1999/xlink" width="256" height="256"><path d="M816.42361995 935.7671032H208.65084682c-66.21563259 0-119.88718933-53.67155675-119.88718934-119.88718933V208.12008613c0-66.21563259 53.67155675-119.88718933 119.88718934-119.88718933h607.77277313c66.21563259 0 119.88718933 53.67155675 119.88718933 119.88718933v607.77277312c0 66.2026872-53.67155675 119.87424395-119.88718933 119.87424395z" fill="#0E8CFB" p-id="15868"></path><path d="M552.82973709 357.91110953l41.38638854 308.19072632h-93.63395318l-10.90001226-83.88608H359.01146706l-36.51892464 83.88608h-88.7535439l120.35322311-292.94106548-15.78042153-15.23671546h214.51793699z m-120.30144159 52.23461927l-52.28640078 119.8224624h104.53396543l-15.78042154-119.8224624h-36.46714311z" fill="#FFFFFF" p-id="15869"></path><path d="M791.30957748 357.91110953l-47.36715535 308.19072632H644.81962667l36.51892464-287.49105935-15.81925768-20.69966697h125.79028385z" fill="#C6E5F7" p-id="15870"></path></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="0.55" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="bubble" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+    <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+
+  <circle cx="820" cy="210" r="180" fill="#ffffff" opacity="0.08"/>
+  <circle cx="180" cy="850" r="240" fill="#ffffff" opacity="0.06"/>
+
+  <path d="M312 292 h400 c48 0 84 36 84 84 v216 c0 48 -36 84 -84 84 H560 l-96 92 v-92 h-152 c-48 0 -84 -36 -84 -84 V376 c0 -48 36 -84 84 -84 Z"
+        fill="url(#bubble)" opacity="0.98"/>
+
+  <path d="M520 372 l34 78 85 12 -62 60 15 85 -72 -39 -74 39 16 -85 -62 -60 85 -12 Z"
+        fill="url(#spark)"/>
+  <circle cx="520" cy="520" r="22" fill="#ffffff" opacity="0.9"/>
+</svg>

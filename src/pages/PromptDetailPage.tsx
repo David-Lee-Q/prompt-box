@@ -61,6 +61,14 @@ export default function PromptDetailPage() {
   const [panelWidth, setPanelWidth] = useState(480);
   const [isResizing, setIsResizing] = useState(false);
   const [format, setFormat] = useState<'markdown' | 'html'>('markdown');
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const fn = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', fn);
+    return () => mq.removeEventListener('change', fn);
+  }, []);
 
   const isCreating = id === 'new';
   const createSceneId = isCreating ? searchParams.get('sceneId') : null;
@@ -210,7 +218,7 @@ export default function PromptDetailPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-dvh flex flex-col">
       <Header />
 
       <div className="flex flex-1 overflow-hidden">
@@ -304,7 +312,7 @@ export default function PromptDetailPage() {
             </div>
 
             {showVersions && id && prompt && (
-              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 overflow-y-auto group" style={{ width: panelWidth, maxHeight: 'calc(100vh - 120px)' }}>
+              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 overflow-y-auto group w-full" style={isMobile ? { width: '100%', maxWidth: '100%', maxHeight: 'calc(100dvh - 120px)' } : { width: panelWidth, maxHeight: 'calc(100vh - 120px)' }}>
                 <PanelDragHandle onMouseDown={handleDiffResizeStart} isResizing={isResizing} />
                 <VersionList
                   promptId={id}
@@ -320,7 +328,7 @@ export default function PromptDetailPage() {
             )}
 
             {showDiff && id && (
-              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 max-w-full group" style={{ width: panelWidth }}>
+              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 max-w-full group w-full" style={isMobile ? { width: '100%', maxWidth: '100%' } : { width: panelWidth }}>
                 <PanelDragHandle onMouseDown={handleDiffResizeStart} isResizing={isResizing} />
                 <VersionDiff
                   promptId={id}
@@ -330,7 +338,7 @@ export default function PromptDetailPage() {
             )}
 
             {showTest && id && prompt && (
-              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 overflow-y-auto group" style={{ width: panelWidth, maxHeight: 'calc(100vh - 120px)' }}>
+              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 overflow-y-auto group w-full" style={isMobile ? { width: '100%', maxWidth: '100%', maxHeight: 'calc(100dvh - 120px)' } : { width: panelWidth, maxHeight: 'calc(100vh - 120px)' }}>
                 <PanelDragHandle onMouseDown={handleDiffResizeStart} isResizing={isResizing} />
                 <TestPanel
                   versionId={prompt.currentVersionId}
@@ -341,7 +349,7 @@ export default function PromptDetailPage() {
             )}
 
             {showMultiModel && id && prompt && (
-              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 overflow-y-auto group" style={{ width: panelWidth, maxHeight: 'calc(100vh - 120px)' }}>
+              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 overflow-y-auto group w-full" style={isMobile ? { width: '100%', maxWidth: '100%', maxHeight: 'calc(100dvh - 120px)' } : { width: panelWidth, maxHeight: 'calc(100vh - 120px)' }}>
                 <PanelDragHandle onMouseDown={handleDiffResizeStart} isResizing={isResizing} />
                 <MultiModelTest
                   content={prompt.content}
@@ -351,7 +359,7 @@ export default function PromptDetailPage() {
             )}
 
             {showAnalysis && id && prompt && (
-              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 overflow-y-auto group" style={{ width: panelWidth, maxHeight: 'calc(100vh - 120px)' }}>
+              <div className="relative border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4 mt-4 md:mt-0 overflow-y-auto group w-full" style={isMobile ? { width: '100%', maxWidth: '100%', maxHeight: 'calc(100dvh - 120px)' } : { width: panelWidth, maxHeight: 'calc(100vh - 120px)' }}>
                 <PanelDragHandle onMouseDown={handleDiffResizeStart} isResizing={isResizing} />
                 <QualityAnalysisPanel
                   report={analysisReport}

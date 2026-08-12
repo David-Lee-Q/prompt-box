@@ -157,7 +157,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-dvh flex flex-col">
       <Header onNewPrompt={handleNewPrompt} />
       {loadError && (
         <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 text-sm text-destructive flex items-center gap-2">
@@ -169,7 +169,8 @@ export default function HomePage() {
       <div className="flex flex-1 overflow-hidden">
         <button
           onClick={() => setMobileSidebarOpen(true)}
-          className="md:hidden fixed bottom-4 left-4 z-40 p-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors active:scale-[0.95]"
+          className="md:hidden fixed bottom-20 left-4 z-40 p-3 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors active:scale-[0.95]"
+          style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
           title="打开菜单"
         >
           <Menu className="h-5 w-5" />

@@ -24,6 +24,10 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
   }
 
   .dark {
@@ -46,6 +50,10 @@
     --border: 217.2 32.6% 28%;
     --input: 217.2 32.6% 22%;
     --ring: 224.3 76.3% 48%;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
   }
 }
 
@@ -53,8 +61,24 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Prevent horizontal overflow on mobile */
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground;
+    margin: 0;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    min-height: 100dvh;
+  }
+  /* Prevent iOS Safari from zooming on input focus */
+  input, select, textarea {
+    font-size: 16px;
   }
 }
 
@@ -78,8 +102,7 @@
 .prose svg {
   max-width: 100%;
   height: auto;
-}
-.prose svg text {
+}.prose svg text {
   font-family: system-ui, sans-serif;
 }
 .prose table {
@@ -98,4 +121,22 @@
   max-width: 100%;
   height: auto;
   border-radius: 0.5rem;
+}
+
+/* Mobile-safe bottom padding for main content (clears FAB + safe area) */
+.main-content-pb {
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 768px) {
+  .main-content-pb {
+    padding-bottom: 1rem;
+  }
+}
+
+/* Safe-area helper for mobile drawers/sheets */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
 }

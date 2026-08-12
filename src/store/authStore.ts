@@ -73,10 +73,12 @@ const useAuthStore = create<AuthStore>((set) => ({
     try {
       const user = await db.users.where('username').equals(username).first();
       if (!user) {
+        set({ isLoading: false });
         return '用户名或密码错误';
       }
       const hash = await hashPassword(password, user.salt);
       if (hash !== user.passwordHash) {
+        set({ isLoading: false });
         return '用户名或密码错误';
       }
       const sessionUser = { id: user.id, username: user.username, createdAt: user.createdAt };
@@ -139,7 +141,7 @@ const useAuthStore = create<AuthStore>((set) => ({
   checkSession: () => {
     const user = getSessionUser();
     useSecretStore.getState().lock();
-    set({ currentUser: user, isAuthenticated: !!user });
+    set({ currentUser: user, isAuthenticated: !!user, isLoading: false });
   },
 }));
 

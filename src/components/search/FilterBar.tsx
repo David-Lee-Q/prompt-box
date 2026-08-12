@@ -107,7 +107,7 @@ export default function FilterBar() {
 
       {/* Date picker */}
       {showDatePicker && (
-        <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30 text-xs">
+        <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30 text-xs flex-wrap">
           <span className="text-muted-foreground">从</span>
           <input
             type="date"

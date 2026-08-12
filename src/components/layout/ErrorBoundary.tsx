@@ -28,7 +28,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen text-center p-8 bg-background">
+        <div className="flex flex-col items-center justify-center h-dvh text-center p-8 bg-background">
           <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
           <h2 className="text-xl font-semibold mb-2">页面出现错误</h2>
           <p className="text-sm text-muted-foreground mb-6 max-w-md">

@@ -136,7 +136,7 @@ export default function PromptList({ onNewPrompt, onPromptClick, onToggleStar, o
           )}
         </div>
       ) : viewMode === 'table' ? (
-        <div className="border rounded-md">
+        <div className="border rounded-md overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
