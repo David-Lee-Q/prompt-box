@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Upload, Download, Plus, Clock, Settings, LogOut } from 'lucide-react';
+import { Search, Upload, Download, Plus, Clock, Settings, LogOut, Database } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import useAppStore from '@/store/useAppStore';
@@ -271,6 +271,9 @@ export default function Header({ onNewPrompt }: HeaderProps) {
           <span className="hidden xl:inline">导入</span>
         </Button>
         <ThemeToggle />
+        <Button variant="ghost" size="icon" onClick={() => navigate('/data')} title="数据管理" className="h-10 w-10 sm:h-9 sm:w-9">
+          <Database className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="AI 设置" className="h-10 w-10 sm:h-9 sm:w-9">
           <Settings className="h-4 w-4" />
         </Button>

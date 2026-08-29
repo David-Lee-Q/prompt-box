@@ -4,6 +4,7 @@ import { isExtension } from '@/utils/env';
 import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
+import DataManagementPage from '@/pages/DataManagementPage';
 import PromptDetailPage from '@/pages/PromptDetailPage';
 import AuthGuard from '@/components/auth/AuthGuard';
 import ErrorBoundary from '@/components/layout/ErrorBoundary';
@@ -34,6 +35,14 @@ export default function App() {
             element={
               <AuthGuard>
                 <HomePage />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/data"
+            element={
+              <AuthGuard>
+                <DataManagementPage />
               </AuthGuard>
             }
           />

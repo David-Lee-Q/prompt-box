@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import useAuthStore from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import AuthLayout from '@/components/auth/AuthLayout';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -12,6 +14,8 @@ export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordMismatch, setPasswordMismatch] = useState(false);
 
@@ -40,8 +44,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4">
-      <Card className="w-full max-w-sm">
+    <AuthLayout>
+      <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">注册</CardTitle>
           <CardDescription>创建一个新账号</CardDescription>
@@ -61,27 +65,50 @@ export default function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">密码</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="至少6个字符"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="至少6个字符"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                  title={showPassword ? '隐藏密码' : '显示密码'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">确认密码</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="再次输入密码"
-                value={confirmPassword}
-                onChange={(e) => handleConfirmChange(e.target.value)}
-                required
-                className={passwordMismatch ? 'border-destructive' : ''}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="再次输入密码"
+                  value={confirmPassword}
+                  onChange={(e) => handleConfirmChange(e.target.value)}
+                  required
+                  className={`${passwordMismatch ? 'border-destructive' : ''} pr-9`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showConfirmPassword ? '隐藏密码' : '显示密码'}
+                  title={showConfirmPassword ? '隐藏密码' : '显示密码'}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {passwordMismatch && (
                 <p className="text-xs text-destructive">两次输入的密码不一致</p>
               )}
@@ -101,6 +128,6 @@ export default function RegisterPage() {
           </CardFooter>
         </form>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }

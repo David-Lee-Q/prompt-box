@@ -5,7 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@10.15.1",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite",
+    "server": "node server/index.mjs",
     "build": "tsc -b && vite build",
     "build:ext": "tsc -b && vite build --mode extension && vite build --config vite.content.config.ts",
     "preview": "vite preview"

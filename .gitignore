@@ -1,8 +1,10 @@
 node_modules
 dist
+dist-ext
 test-results
 *.tsbuildinfo
 .env
 .env.local
 docs/
 archive/
+server/data/
