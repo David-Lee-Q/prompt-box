@@ -139,15 +139,15 @@ export default function Header({ onNewPrompt }: HeaderProps) {
   };
 
   return (
-    <header className="flex items-center gap-3 border-b px-3 sm:px-4 py-2">
-      <div className="flex-1 min-w-0">
+    <header className="flex items-center gap-1.5 sm:gap-3 border-b px-2.5 sm:px-4 py-2 pt-safe">
+      <div className="flex-1 min-w-0 flex items-center">
         <h1
           onClick={() => { useAppStore.getState().setActiveScene(null); navigate('/'); }}
-          className="flex items-center gap-1.5 text-base sm:text-lg font-bold text-primary whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex items-center gap-1.5 text-sm sm:text-lg font-bold text-primary whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
           title="返回首页"
         >
-          <img src="/AI.svg" alt="AI" className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
-          <span className="truncate">Prompt Manager</span>
+          <img src="/AI.svg" alt="AI" className="h-4 w-4 sm:h-6 sm:w-6 flex-shrink-0" />
+          <span className="whitespace-nowrap">Prompt Manager</span>
         </h1>
       </div>
 
@@ -155,14 +155,14 @@ export default function Header({ onNewPrompt }: HeaderProps) {
       <div className="relative md:hidden" ref={searchRef}>
         <button
           onClick={() => { setSearchExpanded(!searchExpanded); setTimeout(() => searchInputRef.current?.focus(), 50); }}
-          className="p-1.5 rounded hover:bg-accent transition-colors"
+          className="h-10 w-10 flex items-center justify-center rounded hover:bg-accent transition-colors"
           title="搜索"
         >
           <Search className="h-4 w-4 text-muted-foreground" />
         </button>
 
         {searchExpanded && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-1 w-72 bg-popover border rounded-md shadow-lg p-2">
+          <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-1 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] bg-popover border rounded-md shadow-lg p-2">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -255,26 +255,26 @@ export default function Header({ onNewPrompt }: HeaderProps) {
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-0.5 sm:gap-1.5">
+      <div className="flex items-center justify-end gap-1 sm:gap-1.5 flex-shrink-0">
         {onNewPrompt && (
-          <Button variant="default" size="sm" onClick={onNewPrompt} className="active:scale-[0.98] transition-all hidden sm:inline-flex">
+          <Button variant="default" size="sm" onClick={onNewPrompt} className="active:scale-[0.98] transition-all h-10 px-3 sm:h-8 sm:px-4 hidden sm:inline-flex">
             <Plus className="h-4 w-4 mr-1" />
             新建提示词
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={handleExport} title="导出数据" className="active:scale-[0.98] transition-all">
+        <Button variant="ghost" size="sm" onClick={handleExport} title="导出数据" className="active:scale-[0.98] transition-all h-10 w-10 p-0 sm:h-8 sm:w-auto sm:px-3 hidden sm:inline-flex sm:hover:bg-accent sm:hover:text-foreground">
           <Upload className="h-4 w-4 xl:mr-1" />
           <span className="hidden xl:inline">导出</span>
         </Button>
-        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} title="导入数据" className="active:scale-[0.98] transition-all">
+        <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} title="导入数据" className="active:scale-[0.98] transition-all h-10 w-10 p-0 sm:h-8 sm:w-auto sm:px-3 hidden sm:inline-flex sm:hover:bg-accent sm:hover:text-foreground">
           <Download className="h-4 w-4 xl:mr-1" />
           <span className="hidden xl:inline">导入</span>
         </Button>
         <ThemeToggle />
-        <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="AI 设置">
+        <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="AI 设置" className="h-10 w-10 sm:h-9 sm:w-9">
           <Settings className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon" onClick={() => useAuthStore.getState().logout()} title="退出登录">
+        <Button variant="ghost" size="icon" onClick={() => useAuthStore.getState().logout()} title="退出登录" className="h-10 w-10 sm:h-9 sm:w-9">
           <LogOut className="h-4 w-4" />
         </Button>
         <input ref={fileInputRef} type="file" accept=".json,.md" onChange={handleImport} className="hidden" />
