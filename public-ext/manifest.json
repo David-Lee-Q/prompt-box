@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Prompt Manager",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "纯本地 Prompt 全生命周期管理工具 — 质量分析、AI 优化、多模型对比",
   "icons": {
     "16": "icons/icon16.png",
