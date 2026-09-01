@@ -15,6 +15,9 @@ import { toast } from '@/hooks/use-toast';
 import { getOrCreateProvider, evictProvider } from '@/services/ai';
 import type { ProviderConfig, APIFormat } from '@/types/ai';
 import { Plus, Trash2, Check, Settings, Eye, EyeOff } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
+import changelogRaw from '../../../CHANGELOG.md?raw';
 
 const EMPTY_FORM: Omit<ProviderConfig, 'id'> = {
   name: '',
@@ -23,6 +26,35 @@ const EMPTY_FORM: Omit<ProviderConfig, 'id'> = {
   baseUrl: '',
   model: '',
 };
+
+const CHANGELOG_COMPONENTS: Components = {
+  h2: ({ children }) => <div className="font-semibold text-foreground">{children}</div>,
+  h3: ({ children }) => <div className="font-medium text-foreground mt-2">{children}</div>,
+  ul: ({ children }) => <ul className="list-disc pl-4 space-y-1">{children}</ul>,
+  hr: () => null,
+};
+
+// CHANGELOG 按时间倒序排列，取最新的 count 个版本条目
+function getRecentChangelogMd(raw: string, count = 2): string {
+  const lines = raw.split('\n');
+  const start = lines.findIndex((l) => /^## v\d/.test(l));
+  if (start === -1) return '';
+  let seen = 0;
+  let end = lines.length;
+  for (let i = start; i < lines.length; i++) {
+    const line = lines[i];
+    if (line !== undefined && /^## v\d/.test(line)) {
+      seen += 1;
+      if (seen > count) {
+        end = i;
+        break;
+      }
+    }
+  }
+  return lines.slice(start, end).join('\n').trim();
+}
+
+const RECENT_CHANGELOG_MD = getRecentChangelogMd(changelogRaw);
 
 export default function AISettings() {
   const {
@@ -438,16 +470,7 @@ export default function AISettings() {
               <span className="text-xs text-muted-foreground transition-transform group-open:rotate-180">&#9660;</span>
             </summary>
             <div className="px-3 pb-3 pt-1 text-xs text-muted-foreground space-y-1.5">
-              <div className="font-medium text-foreground">v2.3.0 最新迭代</div>
-              <ul className="list-disc pl-4 space-y-1">
-                <li><strong>用户认证</strong> — 登录/注册功能，基于 IndexedDB 本地存储用户信息</li>
-                <li><strong>SVG 场景预览</strong> — 场景卡片支持 SVG 图文预览，直观展示场景内容</li>
-                <li><strong>HTML 预览渲染</strong> — 提示词详情页支持 HTML 格式渲染，正确显示标题、图片、表格</li>
-                <li><strong>Markdown 导入</strong> — 支持导入 .md 文件为提示词，自动提取 <code className="bg-muted px-1 rounded text-[10px]">{`{{变量}}`}</code> 模板</li>
-                <li><strong>API 连接优化</strong> — 优先直连 API，失败自动回退代理，提升请求成功率</li>
-                <li><strong>表格操作列</strong> — 表格视图新增编辑、收藏、删除操作按钮，批量管理更方便</li>
-                <li><strong>数据安全加固</strong> — Service 层增加 userId 权限校验，防止跨用户数据访问</li>
-              </ul>
+              <ReactMarkdown components={CHANGELOG_COMPONENTS}>{RECENT_CHANGELOG_MD}</ReactMarkdown>
             </div>
           </details>
         </div>
