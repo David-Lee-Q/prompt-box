@@ -31,6 +31,16 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 
 ## 条目
 
+[版本号与 CHANGELOG 维护规范]
+- Date: 2026-09-01
+- Context: 用户指示「版本更新按照时间排序，今天更新的内容作为 V2.3.1」
+- Category: 工作流协作
+- Instructions:
+  - CHANGELOG 按时间排序：最新版本在最上面，逐版本向下排列（新 → 旧）。
+  - 版本条目按「工作发生日期」划分：同一天的改动归入同一版本条目，条目日期用该天日期（如 `## v2.3.1 (2026-09-01)`）。不同天的改动拆成不同版本。
+  - 升版本时同步四处保持一致：`package.json` 的 `version`（驱动前端状态栏 `__APP_VERSION__`）、`public-ext/manifest.json`、`CHANGELOG.md`、`README.md` 顶部「版本：vX.Y.Z」。改完 `package.json` 后需重启 dev 服务，状态栏版本才会更新。
+  - 前端状态栏版本号取自 `package.json`；README 里「（vX.Y 新增）」这类小节标注沿用次版本号（如 v2.3），不用改。
+
 [部署拓扑：同步后端 + 前端反代]
 - Date: 2026-08-29
 - Context: Agent 在执行「云端同步/备份跨设备」功能开发时发现
