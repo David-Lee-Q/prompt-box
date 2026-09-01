@@ -13,6 +13,7 @@ import { createScene, updateScene, deleteScene } from '@/services/sceneService';
 import { toggleStarPrompt, deletePrompt } from '@/services/promptService';
 import { exportAllData, exportScene } from '@/utils/export-import';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { useNewPrompt } from '@/hooks/use-new-prompt';
 import type { Scene } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
@@ -95,13 +96,7 @@ export default function HomePage() {
   };
 
   // ----- Prompt operations -----
-  const handleNewPrompt = () => {
-    if (!activeSceneId) {
-      toast({ title: '请先选择场景', variant: 'destructive' });
-      return;
-    }
-    navigate(`/prompts/new?sceneId=${activeSceneId}`);
-  };
+  const { handleNewPrompt, sceneSelectDialog } = useNewPrompt();
 
   const handlePromptClick = (id: string) => {
     navigate(`/prompts/${id}`);
@@ -201,6 +196,8 @@ export default function HomePage() {
         onSubmit={handleSceneSubmit}
         initialData={editingScene}
       />
+
+      {sceneSelectDialog}
 
       <StatusBar />
 

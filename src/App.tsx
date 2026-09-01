@@ -8,6 +8,7 @@ import DataManagementPage from '@/pages/DataManagementPage';
 import PromptDetailPage from '@/pages/PromptDetailPage';
 import AuthGuard from '@/components/auth/AuthGuard';
 import ErrorBoundary from '@/components/layout/ErrorBoundary';
+import GlobalNewPromptFab from '@/components/layout/GlobalNewPromptFab';
 import { Toaster } from '@/components/ui/toaster';
 import AISettings from '@/components/settings/AISettings';
 import useSettingsStore from '@/store/settingsStore';
@@ -16,6 +17,7 @@ import useAuthStore from '@/store/authStore';
 export default function App() {
   const loadSettings = useSettingsStore((s) => s.loadSettings);
   const checkSession = useAuthStore((s) => s.checkSession);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
     loadSettings();
@@ -55,6 +57,7 @@ export default function App() {
             }
           />
         </Routes>
+        {isAuthenticated && <GlobalNewPromptFab />}
       </Router>
       <AISettings />
       <Toaster />

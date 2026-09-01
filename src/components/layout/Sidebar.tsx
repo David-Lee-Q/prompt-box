@@ -95,7 +95,7 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
               <div className="absolute left-1.5 top-4 bottom-4 w-1.5 rounded-full" style={{ backgroundColor: scene.color }} />
               <button
                 onClick={() => handleSceneClick(scene.id)}
-                className={`w-full text-left pl-6 pr-9 py-3 min-h-[80px] text-sm transition-colors ${
+                className={`w-full text-left pl-6 pr-24 md:pr-9 py-3 min-h-[80px] text-sm transition-colors ${
                   activeSceneId === scene.id ? 'text-primary font-semibold' : 'text-foreground'
                 }`}
               >
@@ -107,7 +107,34 @@ export default function Sidebar({ onNewScene, onEditScene, onDeleteScene, onExpo
                 </div>
               </button>
 
-              <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5">
+              {/* Mobile: actions always visible (touch has no hover, sticky :hover would intercept taps) */}
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 md:hidden">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEditScene(scene); }}
+                  className="size-8 flex items-center justify-center rounded-md bg-background/60 text-muted-foreground active:bg-accent transition-colors"
+                  aria-label="编辑场景"
+                >
+                  <Edit3 className="size-3.5" />
+                </button>
+                {onExportScene && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onExportScene(scene); }}
+                    className="size-8 flex items-center justify-center rounded-md bg-background/60 text-muted-foreground active:bg-accent transition-colors"
+                    aria-label="导出场景"
+                  >
+                    <Upload className="size-3.5" />
+                  </button>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDeleteScene(scene); }}
+                  className="size-8 flex items-center justify-center rounded-md bg-background/60 text-muted-foreground active:text-destructive transition-colors"
+                  aria-label="删除场景"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden md:group-hover:flex items-center gap-0.5">
                 <button
                   onClick={(e) => { e.stopPropagation(); onEditScene(scene); }}
                   className="size-7 flex items-center justify-center rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
