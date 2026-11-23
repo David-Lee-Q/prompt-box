@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { AIError } from './errors';
+import { AIError, sanitizeAiErrorMessage } from './errors';
 import { mapOpenAIError } from './openai';
 import { mapAnthropicError } from './anthropic';
 
 function apiError(status: number, message = 'api error') {
   return { status, message };
 }
+
+const NGINX_500_HTML =
+  '500 <html> <head> <title>500 Internal Server Error</title> </head> <body> <center><h1>500 Internal Server Error</h1> <center>nginx/1.30.3</center> </body> </html>';
 
 function networkTypeError() {
   return new TypeError('Failed to fetch');
@@ -73,6 +76,39 @@ describe('mapOpenAIError', () => {
     const raw = { status: 429, message: 'rate' };
     expect(mapOpenAIError(raw).providerRaw).toBe(raw);
   });
+
+  it('sanitizes HTML error bodies (e.g. nginx 50x pages)', () => {
+    const e = mapOpenAIError({ status: 500, message: NGINX_500_HTML });
+    expect(e.code).toBe('server');
+    expect(e.message).not.toContain('<html>');
+    expect(e.message).not.toContain('nginx');
+    expect(e.message).toContain('500');
+  });
+
+  it('sanitizes overly long error messages', () => {
+    const long = 'x'.repeat(300);
+    const e = mapOpenAIError({ status: 502, message: long });
+    expect(e.message.length).toBeLessThan(200);
+  });
+
+  it('keeps short API error messages intact', () => {
+    const e = mapOpenAIError({ status: 400, message: '{"error":"invalid model"}' });
+    expect(e.message).toBe('{"error":"invalid model"}');
+  });
+});
+
+describe('sanitizeAiErrorMessage', () => {
+  it('returns empty-message fallback with status', () => {
+    expect(sanitizeAiErrorMessage(undefined, 500)).toContain('500');
+  });
+
+  it('returns empty-message fallback without status', () => {
+    expect(sanitizeAiErrorMessage(undefined)).toBe('请求失败');
+  });
+
+  it('passes through normal short messages', () => {
+    expect(sanitizeAiErrorMessage('Invalid API key', 401)).toBe('Invalid API key');
+  });
 });
 
 describe('mapAnthropicError', () => {
@@ -114,7 +150,14 @@ describe('mapAnthropicError', () => {
 
   it('uses fallback message for undefined message', () => {
     const e = mapAnthropicError({ status: 500, message: undefined });
-    expect(e.message).toBe('Anthropic API error');
+    expect(e.message).toContain('500');
+  });
+
+  it('sanitizes HTML error bodies (e.g. nginx 50x pages)', () => {
+    const e = mapAnthropicError({ status: 500, message: NGINX_500_HTML });
+    expect(e.code).toBe('server');
+    expect(e.message).not.toContain('<html>');
+    expect(e.message).toContain('500');
   });
 
   it('passes through plain Error message', () => {

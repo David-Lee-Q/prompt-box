@@ -156,15 +156,13 @@ export default function AISettings() {
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     // Request host permission BEFORE test (must be in user gesture context)
-    console.log('[perm-check] chrome:', !!chrome, 'permissions:', !!chrome?.permissions, 'baseUrl:', form.baseUrl.trim());
-    if (chrome?.permissions && form.baseUrl.trim()) {
+    // typeof 守卫：非扩展环境（Firefox 等）不存在 chrome 全局，直接引用会抛 ReferenceError
+    if (typeof chrome !== 'undefined' && chrome.permissions && form.baseUrl.trim()) {
       try {
         const origin = new URL(form.baseUrl.trim()).origin + '/*';
-        console.log('[perm-check] origin:', origin);
         const hasPermission = await new Promise<boolean>(r =>
           chrome.permissions.contains({ origins: [origin] }, (result) => r(result))
         );
-        console.log('[perm-check] hasPermission:', hasPermission);
         if (!hasPermission) {
           const granted = await new Promise<boolean>(r =>
             chrome.permissions.request({ origins: [origin] }, (result) => r(result))

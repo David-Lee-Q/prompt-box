@@ -4,7 +4,7 @@ import type { AIProviderConfig } from '@/types/ai';
 import type { ChatMessage } from './types';
 import { createProxyFetch } from './fetchWithProxy';
 import { registerProvider } from './registry';
-import { AIError, type AIErrorCode } from './errors';
+import { AIError, sanitizeAiErrorMessage, type AIErrorCode } from './errors';
 import { stripThinkBlocks } from './thinkFilter';
 
 export function mapOpenAIError(err: unknown): AIError {
@@ -18,7 +18,7 @@ export function mapOpenAIError(err: unknown): AIError {
       e.status === 401 || e.status === 403 ? 'auth' :
       e.status === 429 ? 'rate_limit' :
       e.status >= 500 ? 'server' : 'unknown';
-    return new AIError(e.message || 'OpenAI API error', code, e.status, err);
+    return new AIError(sanitizeAiErrorMessage(e.message, e.status), code, e.status, err);
   }
   if (err instanceof TypeError) {
     if (err.message === 'Failed to fetch' || err.message.includes('fetch')) {
