@@ -1,7 +1,7 @@
 {
-  "name": "AI Prompt Manager",
-  "short_name": "Prompt Manager",
-  "description": "纯浏览器本地 Prompt 全生命周期管理工具",
+  "name": "AI提示词管理器",
+  "short_name": "AI提示词管理器",
+  "description": "纯浏览器本地提示词全生命周期管理工具 — 质量分析、AI 优化、多模型对比",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

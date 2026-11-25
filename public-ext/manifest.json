@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AI Prompt Manager",
+  "name": "AI提示词管理器",
   "version": "2.3.1",
-  "description": "纯本地 Prompt 全生命周期管理工具 — 质量分析、AI 优化、多模型对比",
+  "description": "纯本地提示词全生命周期管理工具 — 质量分析、AI 优化、多模型对比",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -30,7 +30,7 @@
     "service_worker": "sw.js"
   },
   "action": {
-    "default_title": "AI Prompt Manager",
+    "default_title": "AI提示词管理器",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

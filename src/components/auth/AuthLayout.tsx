@@ -20,10 +20,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className="hidden lg:flex flex-1 items-center justify-center px-10 xl:px-20 py-10 bg-gradient-to-br from-primary/10 via-background to-accent/40">
         <div className="w-full max-w-lg">
           <div className="flex items-center gap-3">
-            <img src="/AI.svg" alt="Prompt Manager" className="h-12 w-12 rounded-2xl shadow-lg shadow-primary/20" />
+            <img src="/AI.svg" alt="AI提示词管理器" className="h-12 w-12 rounded-2xl shadow-lg shadow-primary/20" />
             <div>
-              <h1 className="text-2xl font-bold leading-tight">Prompt Manager</h1>
-              <p className="text-sm text-muted-foreground">AI 提示词管理助手</p>
+              <h1 className="text-2xl font-bold leading-tight">AI提示词管理器</h1>
+              <p className="text-sm text-muted-foreground">提示词全生命周期管理</p>
             </div>
           </div>
 
@@ -33,7 +33,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             让每一次创作<span className="text-primary">事半功倍</span>
           </h2>
           <p className="mt-5 text-muted-foreground leading-relaxed">
-            Prompt Manager 提供场景化整理、AI 生成优化、多模型对比与版本追踪的一站式能力，帮助你沉淀并复用每一个优质提示词。
+            AI提示词管理器提供场景化整理、AI 生成优化、多模型对比与版本追踪的一站式能力，帮助你沉淀并复用每一个优质提示词。
           </p>
 
           <ul className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
@@ -55,7 +55,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
         <div className="lg:hidden mb-8 flex items-center gap-2.5">
           <img src="/AI.svg" alt="AI" className="h-9 w-9 rounded-lg" />
-          <span className="text-lg font-bold">Prompt Manager</span>
+          <span className="text-lg font-bold">AI提示词管理器</span>
         </div>
         <div className="w-full max-w-sm">{children}</div>
       </div>

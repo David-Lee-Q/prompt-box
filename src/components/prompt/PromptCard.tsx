@@ -44,7 +44,7 @@ export default function PromptCard({ prompt, onClick, onToggleStar, versionStr }
         </div>
 
         <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
-          <HighlightText text={prompt.content || '暂无内容'} highlight={searchQuery} />
+          <HighlightText text={prompt.description?.trim() ? prompt.description : prompt.content || '暂无内容'} highlight={searchQuery} />
         </p>
 
         {prompt.tags.length > 0 && (

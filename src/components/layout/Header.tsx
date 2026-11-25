@@ -147,7 +147,7 @@ export default function Header({ onNewPrompt }: HeaderProps) {
           title="返回首页"
         >
           <img src="/AI.svg" alt="AI" className="h-4 w-4 sm:h-6 sm:w-6 flex-shrink-0" />
-          <span className="whitespace-nowrap">Prompt Manager</span>
+          <span className="whitespace-nowrap">AI提示词管理器</span>
         </h1>
       </div>
 

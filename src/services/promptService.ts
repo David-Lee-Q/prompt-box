@@ -55,13 +55,15 @@ export async function savePrompt(
       const variables = extractVariables(updatedContent);
       const contentChanged = updatedContent !== existingPrompt.content;
       const metaChanged = prompt.name !== undefined && prompt.name !== existingPrompt.name
-        || prompt.sceneId !== undefined && prompt.sceneId !== existingPrompt.sceneId;
+        || prompt.sceneId !== undefined && prompt.sceneId !== existingPrompt.sceneId
+        || prompt.description !== undefined && prompt.description !== existingPrompt.description;
 
-      // Always persist name/scene changes (even without content change)
+      // Always persist name/scene/description changes (even without content change)
       if (metaChanged) {
         await db.prompts.update(prompt.id, {
           name: prompt.name,
           sceneId: prompt.sceneId,
+          ...(prompt.description !== undefined ? { description: prompt.description } : {}),
           ...(contentChanged ? { content: updatedContent, variables, updatedAt: now } : {}),
         });
       } else if (contentChanged) {
@@ -122,6 +124,7 @@ export async function savePrompt(
         userId,
         sceneId: prompt.sceneId,
         name: prompt.name || '未命名提示词',
+        description: prompt.description ?? '',
         content: initialContent,
         isStarred: false,
         currentVersionId: '',

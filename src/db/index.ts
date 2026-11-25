@@ -98,7 +98,7 @@ db.version(7).stores({
     userId: PUBLIC_USER_ID,
     sceneId,
     name: '用户使用手册',
-    content: `# AI Prompt Manager 使用手册
+    content: `# AI提示词管理器使用手册
 
 ## 系统架构
 

@@ -24,6 +24,7 @@ export interface Prompt {
   userId: string;
   sceneId: string;
   name: string;
+  description?: string;
   content: string;
   isStarred: boolean;
   currentVersionId: string;

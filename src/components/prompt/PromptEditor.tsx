@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Save, ArrowLeft, Hash, Clock, Sparkles, Eye } from 'lucide-react';
+import { Save, ArrowLeft, Hash, Clock, Sparkles, Eye, UploadCloud } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { json } from '@codemirror/lang-json';
@@ -32,6 +32,7 @@ import { getSessionUser } from '@/store/authStore';
 import useSettingsStore from '@/store/settingsStore';
 import { formatDate } from '@/utils/helpers';
 import { copyToClipboard } from '@/utils/clipboard';
+import { parseSkillFile, containsChinese } from '@/utils/skillFileParser';
 import type { Prompt } from '@/types';
 
 const DRAFT_KEY_PREFIX = 'prompt-draft-';
@@ -59,9 +60,11 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   const sessionUser = getSessionUser();
   const userId = sessionUser?.id ?? '';
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
+  const [skillFileName, setSkillFileName] = useState('');
   const [changeLog, setChangeLog] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -117,6 +120,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   const isReadyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skillFileInputRef = useRef<HTMLInputElement>(null);
 
   const draftKey = prompt?.id ? `${DRAFT_KEY_PREFIX}${prompt.id}` : null;
 
@@ -135,6 +139,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
         setName(prompt.name);
         setContent(prompt.content);
       }
+      setDescription(prompt.description ?? '');
       setTags(prompt.tags ?? []);
       setNotes(prompt.notes ?? '');
       setChangeLog('');
@@ -149,9 +154,11 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
     } else if (!sceneId) {
       // Neither prompt nor creating — reset to defaults
       setName('');
+      setDescription('');
       setContent('');
       setTags([]);
       setNotes('');
+      setSkillFileName('');
       setChangeLog('');
       setCurrentVersion('');
       setUpdatedDate(0);
@@ -214,17 +221,57 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [readOnly]);
 
+  const handleSkillFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const result = await parseSkillFile(file);
+      setName(result.name);
+      setDescription(result.description);
+      setContent(result.content);
+      setSkillFileName(result.sourceName);
+      const missing: string[] = [];
+      if (!containsChinese(result.name)) missing.push('名称');
+      if (!containsChinese(result.description)) missing.push('描述');
+      if (missing.length > 0) {
+        toast({
+          title: '技能文件解析完成',
+          description: `解析出的${missing.join('、')}不是中文，请手动修改为中文后再保存`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: '技能文件解析完成',
+          description: `名称「${result.name}」与描述已填入，点击保存生效`,
+          variant: 'success',
+        });
+      }
+    } catch (err) {
+      toast({ title: '技能文件解析失败', description: String(err), variant: 'destructive' });
+    }
+  };
+
   const handleSave = async () => {
     if (readOnly) return;
     const finalName = name.trim() || '未命名提示词';
+    const finalDescription = description.trim();
+    if (finalDescription && (!containsChinese(finalName) || !containsChinese(finalDescription))) {
+      toast({
+        title: '保存失败',
+        description: '卡片上的技能名称和描述必须为中文，请修改后再保存',
+        variant: 'destructive',
+      });
+      return;
+    }
     const targetSceneId = prompt?.sceneId || createSceneId;
     if (!targetSceneId) return;
     setIsSaving(true);
     try {
       const result = await savePrompt(
         prompt?.id
-          ? { id: prompt.id, sceneId: prompt.sceneId, name: finalName, content }
-          : { sceneId: targetSceneId, name: finalName, content },
+          ? { id: prompt.id, sceneId: prompt.sceneId, name: finalName, description: finalDescription, content }
+          : { sceneId: targetSceneId, name: finalName, description: finalDescription, content },
         changeLog || '更新内容',
         userId ?? ''
       );
@@ -447,6 +494,32 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
 
           {!readOnly && (
             <>
+              {!prompt && sceneId && (
+                <div className="space-y-1.5">
+                  <Label>技能文件导入</Label>
+                  <input
+                    ref={skillFileInputRef}
+                    type="file"
+                    accept=".zip,.md"
+                    className="hidden"
+                    onChange={handleSkillFile}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => skillFileInputRef.current?.click()}
+                    title="上传 .zip 技能包或 SKILL.md 文件，自动解析技能名称与描述"
+                  >
+                    <UploadCloud className="h-3.5 w-3.5 mr-1" />
+                    上传技能文件（.zip / SKILL.md）
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    自动解析技能名称与描述（需为中文）填入表单{skillFileName ? `。已导入：${skillFileName}` : ''}
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label>所属场景</Label>
                 <select
@@ -466,6 +539,16 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>描述（卡片展示）</Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="min-h-[60px] text-sm"
+                  placeholder="提示词描述，展示在卡片上（技能导入时自动填入，需为中文）"
+                />
               </div>
             </>
           )}
