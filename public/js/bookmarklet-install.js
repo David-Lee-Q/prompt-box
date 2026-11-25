@@ -177,7 +177,18 @@
   function showBubbleAtButton() {
     if (!btn || !bubble) return;
     var r = btn.getBoundingClientRect();
-    setBubble(r.left + r.width / 2, r.top);
+    var bh = bubble.offsetHeight || 30;
+    if (r.top - bh - 12 < 8) {
+      var bw = bubble.offsetWidth || 80;
+      var left = Math.max(
+        8,
+        Math.min(r.left + r.width / 2 - bw / 2, window.innerWidth - bw - 8)
+      );
+      bubble.style.left = left + 'px';
+      bubble.style.top = r.bottom + 12 + 'px';
+    } else {
+      setBubble(r.left + r.width / 2, r.top);
+    }
   }
 
   function copyCode() {
