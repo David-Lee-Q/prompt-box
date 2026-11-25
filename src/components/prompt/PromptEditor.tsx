@@ -33,6 +33,7 @@ import useSettingsStore from '@/store/settingsStore';
 import { formatDate } from '@/utils/helpers';
 import { copyToClipboard } from '@/utils/clipboard';
 import { parseSkillFile, containsChinese } from '@/utils/skillFileParser';
+import { renderFrontmatterAsTable } from '@/utils/markdownFrontmatter';
 import type { Prompt } from '@/types';
 
 const DRAFT_KEY_PREFIX = 'prompt-draft-';
@@ -340,6 +341,11 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
     'Ctrl+I': () => { if (content && isConfigured) setShowOptimize(true); },
   });
 
+  const previewSource = useMemo(
+    () => renderFrontmatterAsTable(content || readOnlyContent || ''),
+    [content, readOnlyContent]
+  );
+
   if (!prompt && !sceneId) {
     return (
       <div className="flex items-center justify-center h-60 text-muted-foreground">
@@ -450,7 +456,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
             {previewFormat === 'html' ? (
               <div className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-y-auto h-full" style={isDesktop ? undefined : { minHeight: `${editorHeight}px`, maxHeight: `${editorHeight}px` }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                  {DOMPurify.sanitize(content || readOnlyContent || '')}
+                  {DOMPurify.sanitize(previewSource)}
                 </ReactMarkdown>
               </div>
             ) : (
