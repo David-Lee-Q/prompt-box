@@ -17,7 +17,7 @@
  *   BookmarkletInstaller.reset()     清除「已安装隐藏」状态并重新渲染
  *
  * 默认行为：
- * - 悬浮按钮固定右上角（可配置 position: top-right | top-left）
+ * - 悬浮按钮固定右上角（可配置 position: top-right | top-left | top-center）
  * - 主色探测：CSS 变量 → meta[name=theme-color] → 兜底 #004baa
  * - 按住拖拽时按钮上方出现「向上拖👆」气泡并跟随光标
  * - 按下瞬间链接文本与 title 设为应用名（书签名 = 应用名），不显式加 draggable
@@ -229,7 +229,7 @@
     if (!href) return;
 
     var color = detectPrimary();
-    var isRight = (opts.position || 'top-right') === 'top-right';
+    var pos = opts.position || 'top-right';
     var appName = detectAppName();
 
     btn = document.createElement('a');
@@ -242,10 +242,13 @@
     s.position = 'fixed';
     s.zIndex = '9999';
     s.top = (opts.top == null ? 16 : opts.top) + 'px';
-    if (isRight) {
-      s.right = (opts.right == null ? 16 : opts.right) + 'px';
-    } else {
+    if (pos === 'top-center') {
+      s.left = '50%';
+      s.transform = 'translateX(-50%)';
+    } else if (pos === 'top-left') {
       s.left = (opts.left == null ? 16 : opts.left) + 'px';
+    } else {
+      s.right = (opts.right == null ? 16 : opts.right) + 'px';
     }
     s.display = 'inline-flex';
     s.alignItems = 'center';
