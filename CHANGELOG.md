@@ -16,6 +16,7 @@
 
 ### 修复
 
+- HTML 预览中 `<script>` 块与 HTML 注释之前会整段消失（DOMPurify 删除 script 标签、Markdown 渲染器丢弃注释节点），现预览时 script 自动转为可见的 HTML 代码块（原文完整保留、不执行），注释转为可见文本；围栏内的代码示例保持原样，源码视图不受影响
 - 技能提示词 HTML 预览修复：正文开头的 YAML frontmatter 之前被当普通 Markdown 渲染（`---` 变隐形分隔线、`name:`/`description:` 行糊成一段），现预览时自动转为两列表格展示；嵌套结构（如 arguments）保留为 YAML 代码块，Markdown 源码视图保留原始内容
 - AI 连接失败提示清洗：服务端返回非 JSON 错误响应（如 nginx HTML 错误页）时显示可读消息，替代原始 HTML 堆栈
 - 修复非扩展环境下「测试连接」点击无反应的问题（chrome 全局未定义导致异常中断）

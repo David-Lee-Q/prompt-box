@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -33,7 +32,7 @@ import useSettingsStore from '@/store/settingsStore';
 import { formatDate } from '@/utils/helpers';
 import { copyToClipboard } from '@/utils/clipboard';
 import { parseSkillFile, containsChinese } from '@/utils/skillFileParser';
-import { renderFrontmatterAsTable } from '@/utils/markdownFrontmatter';
+import { prepareMarkdownPreview } from '@/utils/markdownPreview';
 import type { Prompt } from '@/types';
 
 const DRAFT_KEY_PREFIX = 'prompt-draft-';
@@ -342,7 +341,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
   });
 
   const previewSource = useMemo(
-    () => renderFrontmatterAsTable(content || readOnlyContent || ''),
+    () => prepareMarkdownPreview(content || readOnlyContent || ''),
     [content, readOnlyContent]
   );
 
@@ -456,7 +455,7 @@ export default function PromptEditor({ prompt, sceneId, onBack, onSaved, toolbar
             {previewFormat === 'html' ? (
               <div className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-y-auto h-full" style={isDesktop ? undefined : { minHeight: `${editorHeight}px`, maxHeight: `${editorHeight}px` }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                  {DOMPurify.sanitize(previewSource)}
+                  {previewSource}
                 </ReactMarkdown>
               </div>
             ) : (
